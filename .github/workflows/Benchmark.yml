@@ -1,0 +1,33 @@
+name: Benchmark
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  RunBenchmark:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Setup julia
+        uses: julia-actions/setup-julia@v1
+      -
+        name: Build pkg
+        uses: julia-actions/julia-buildpkg@v1
+      -
+        id: benchmark
+        name: Run benchmark
+        run: |
+          julia --project=benchmark -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+          julia --project=benchmark benchmark/runbenchmarks.jl
+      -
+        name: Print report
+        run: |
+          cat benchmark/report.md
+      -
+        name: Upload report
+        uses: actions/upload-artifact@v2
+        with:
+          name: report.md
+          path: benchmark/report.md
