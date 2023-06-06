@@ -19,7 +19,7 @@ jobs:
         id: benchmark
         name: Run benchmark
         run: |
-          julia --project=benchmark -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+          julia --project=benchmark -e 'using Pkg; p = pwd(); print(p); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
           julia --project=benchmark benchmark/runbenchmarks.jl
       -
         name: Print report
