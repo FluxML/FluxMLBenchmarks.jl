@@ -33,19 +33,19 @@ function main()
             kwargs...
         )
 
-    target = parsed_args["target"]
-    group_target = benchmarkpkg(
-        dirname(@__DIR__),
-        mkconfig(id = target),
-        resultfile = joinpath(@__DIR__, "result-$(target).json"),
-        retune = parsed_args["retune"],
-    )
-
     baseline = parsed_args["baseline"]
     group_baseline = benchmarkpkg(
         dirname(@__DIR__),
         mkconfig(id = baseline),
         resultfile = joinpath(@__DIR__, "result-$(baseline).json"),
+        retune = parsed_args["retune"],
+    )
+
+    target = parsed_args["target"]
+    group_target = benchmarkpkg(
+        dirname(@__DIR__),
+        mkconfig(id = target),
+        resultfile = joinpath(@__DIR__, "result-$(target).json"),
     )
 
     judgement = judge(group_target, group_baseline)
