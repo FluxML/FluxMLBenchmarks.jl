@@ -2,15 +2,7 @@
 # https://github.com/kul-forbes/ProximalOperators.jl/tree/master/benchmark
 using ArgParse
 using PkgBenchmark
-using BenchmarkCI: displayjudgement, printresultmd, CIResult
-using Markdown
-
-function markdown_report(judgement)
-    md = sprint(printresultmd, CIResult(judgement = judgement))
-    md = replace(md, ":x:" => "❌")
-    md = replace(md, ":white_check_mark:" => "✅")
-    return md
-end
+using FluxMLBenchmarks: markdown_report, display_markdown_report
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -59,7 +51,7 @@ function main()
     judgement = judge(group_target, group_baseline)
     report_md = markdown_report(judgement)
     write(joinpath(@__DIR__, "report.md"), report_md)
-    display(Markdown.parse(report_md))
+    display_markdown_report(report_md)
 end
 
 main()
