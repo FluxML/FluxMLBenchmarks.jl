@@ -1,5 +1,8 @@
 name: Benchmark
 on:
+  push:
+    branches:
+      - 'dev-*'
   pull_request:
     branches:
       - main
@@ -22,7 +25,7 @@ jobs:
         id: benchmark
         name: Run benchmark
         run: |
-          julia --project=benchmark -e 'using Pkg; print(readdir()); print(readdir("benchmark")); print(read("$(pwd())/Project.toml",String)); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+          julia --project=benchmark -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
           julia --project=benchmark benchmark/runbenchmarks.jl
       -
         name: Print report
