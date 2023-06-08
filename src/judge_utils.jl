@@ -1,5 +1,5 @@
 using BenchmarkCI: printresultmd, CIResult
-using BenchmarkTools: BenchmarkJudgement
+using PkgBenchmark: BenchmarkJudgement
 using Markdown
 
 """
