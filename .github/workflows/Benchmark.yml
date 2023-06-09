@@ -1,5 +1,8 @@
 name: Benchmark
 on:
+  push:
+    branches:
+      - 'dev-*'
   pull_request:
     branches:
       - main
@@ -12,6 +15,10 @@ jobs:
       -
         name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup main branch locally without switching current branch
+        run: git fetch origin main:main
       -
         name: Setup julia
         uses: julia-actions/setup-julia@v1
@@ -22,7 +29,7 @@ jobs:
         id: benchmark
         name: Run benchmark
         run: |
-          julia --project=benchmark -e 'using Pkg; print(readdir()); print(readdir("benchmark")); print(read("$(pwd())/Project.toml",String)); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+          julia --project=benchmark -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
           julia --project=benchmark benchmark/runbenchmarks.jl
       -
         name: Print report
