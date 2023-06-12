@@ -6,14 +6,14 @@ using URIParser
 BENCHMARK_PKG_PATH means the relative path of benchmark folder,
 which should be changed if the benchmark code is moved elsewhere.
 """
-const BENCHMARK_PKG_PATH = "../benchmark/"
+const BENCHMARK_PKG_PATH = "./benchmark/"
 
 """
 FLUXML_PKGS mean the packages in FluxML community,
 which are used directly or indirectly by Flux.jl.
 """
 const FLUXML_PKGS = Set((
-    "Flux", "NNlib", "Zygote", "NNlibCUDA", "Optimizers", "OneHotArrays",
+    "Flux", "NNlib", "Zygote", "NNlibCUDA", "Optimisers", "OneHotArrays",
     "Functors", "ZygoteRules", "IRTools", "MacroTools"
 ))
 
@@ -92,17 +92,6 @@ end
 
 
 """
-BENCHMARK_UTIL_DEPS mean the dependencies required to be installed before
-running benchmarks.
-"""
-const BENCHMARK_UTIL_DEPS = Vector{Dependency}([
-    Dependency(name = "BenchmarkCI", version = "0.1"),
-    Dependency(name = "BenchmarkTools", version = "1.3"),
-    Dependency(name = "PkgBenchmark", version = "0.2")
-])
-
-
-"""
     init_dependencies()::Dict{String, Pkg.Types.PackageSpec}
 
 generate the latest version of PackageSpecs directly.
@@ -133,7 +122,7 @@ end
 """
     parse_commandline
 
-used to get command arguments.
+is used to get command arguments.
 """
 function parse_commandline()
     s = ArgParseSettings()
@@ -152,6 +141,11 @@ function parse_commandline()
 end
 
 
+"""
+    setup
+
+is used to activate environment, change dir and install dependencies.
+"""
 function setup(deps::Vector{PackageSpec})
     Pkg.activate(BENCHMARK_PKG_PATH)
     cd(BENCHMARK_PKG_PATH)
@@ -162,9 +156,24 @@ function setup(deps::Vector{PackageSpec})
 end
 
 
+"""
+    setup_fluxml_env
+
+only pass the value of `init_dependencies()` (FLUXML_PKGS) to setup.
+"""
+setup_fluxml_env() = setup(collect(v for (k,v) in init_dependencies()))
+
+
+"""
+    teardown
+
+is used to remove all the package installed, change dir and reactivate base.
+"""
 function teardown()
+    print("yanwo?")
     Pkg.rm(all_pkgs = true)
     pwd = ENV["PWD"] # PWD in ENV means the original path where run the code
+    print("pwd: $pwd")
     Pkg.activate(pwd)
     cd(pwd)
 end
