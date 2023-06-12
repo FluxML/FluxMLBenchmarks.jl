@@ -1,26 +1,7 @@
 # Adapted from
 # https://github.com/kul-forbes/ProximalOperators.jl/tree/master/benchmark
-using ArgParse
 using PkgBenchmark
-using FluxMLBenchmarks: markdown_report, display_markdown_report
-
-function parse_commandline()
-    s = ArgParseSettings()
-
-    @add_arg_table! s begin
-        "--target"
-            help = "the branch/commit/tag to use as target"
-            default = "HEAD"
-        "--baseline"
-            help = "the branch/commit/tag to use as baseline"
-            default = "main"
-        "--retune"
-            help = "force re-tuning (ignore existing tuning data)"
-            action = :store_false
-    end
-
-    return parse_args(s)
-end
+using FluxMLBenchmarks: markdown_report, display_markdown_report, parse_commandline
 
 function main()
     parsed_args = parse_commandline()

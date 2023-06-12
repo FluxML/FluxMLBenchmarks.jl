@@ -1,3 +1,4 @@
+using ArgParse
 using Pkg
 using URIParser
 
@@ -91,6 +92,17 @@ end
 
 
 """
+BENCHMARK_UTIL_DEPS mean the dependencies required to be installed before
+running benchmarks.
+"""
+const BENCHMARK_UTIL_DEPS = Vector{Dependency}([
+    Dependency(name = "BenchmarkCI", version = "0.1"),
+    Dependency(name = "BenchmarkTools", version = "1.3"),
+    Dependency(name = "PkgBenchmark", version = "0.2")
+])
+
+
+"""
     init_dependencies()::Dict{String, Pkg.Types.PackageSpec}
 
 generate the latest version of PackageSpecs directly.
@@ -115,6 +127,28 @@ function init_dependencies(deps::Vector{Dependency})
         init_deps[pkg_name] = convert_to_packagespec(dep)
     end
     return init_deps
+end
+
+
+"""
+    parse_commandline
+
+used to get command arguments.
+"""
+function parse_commandline()
+    s = ArgParseSettings()
+    @add_arg_table! s begin
+        "--target"
+            help = "the branch/commit/tag to use as target"
+            default = "HEAD"
+        "--baseline"
+            help = "the branch/commit/tag to use as baseline"
+            default = "main"
+        "--retune"
+            help = "force re-tuning (ignore existing tuning data)"
+            action = :store_false
+    end
+    return parse_args(s)
 end
 
 
