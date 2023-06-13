@@ -18,8 +18,7 @@ mkconfig(; kwargs...) = BenchmarkConfig(
 group_baseline = benchmarkpkg(
     dirname(@__DIR__),
     mkconfig(id = baseline),
-    resultfile = joinpath(@__DIR__, "result-$(baseline).json"),
-    retune = parsed_args["retune"],
+    resultfile = joinpath(@__DIR__, "result-$(baseline).json")
 )
 
 teardown()
