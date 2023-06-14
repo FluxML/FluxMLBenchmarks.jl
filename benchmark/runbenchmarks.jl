@@ -1,8 +1,8 @@
 using Pkg
-Pkg.develop(PackageSpec(path = ENV["PWD"]))
 
 ###########################################################################
 
+Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 parsed_args = parse_commandline()
 
@@ -25,6 +25,7 @@ teardown()
 
 ###########################################################################
 
+Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 
 target = parsed_args["target"]
