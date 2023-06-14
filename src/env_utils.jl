@@ -9,13 +9,23 @@ which should be changed if the benchmark code is moved elsewhere.
 const BENCHMARK_PKG_PATH = "./benchmark/"
 
 """
+BENCHMARK_BASIC_DEPS mean the dependencies required to be installed before
+running benchmarks.
+"""
+const BENCHMARK_BASIC_DEPS = [
+    PackageSpec(name = "BenchmarkCI", version = "0.1"),
+    PackageSpec(name = "BenchmarkTools", version = "1.3"),
+    PackageSpec(name = "PkgBenchmark", version = "0.2")
+]
+
+"""
 FLUXML_PKGS mean the packages in FluxML community,
 which are used directly or indirectly by Flux.jl.
 """
-const FLUXML_PKGS = Set((
+const FLUXML_PKGS = [
     "Flux", "NNlib", "Zygote", "NNlibCUDA", "Optimisers", "OneHotArrays",
     "Functors", "ZygoteRules", "IRTools", "MacroTools"
-))
+]
 
 
 """
@@ -120,6 +130,19 @@ end
 
 
 """
+    install_benchmark_basic_deps
+
+is used to install dependencies in benchmark part rather than FluxMLBenchmarks
+"""
+function install_benchmark_basic_deps()
+    println("begin to install basic deps")
+    for dep in BENCHMARK_BASIC_DEPS
+        Pkg.add(dep)
+    end
+end
+
+
+"""
     parse_commandline
 
 is used to get command arguments.
@@ -147,8 +170,11 @@ end
 is used to activate environment, change dir and install dependencies.
 """
 function setup(deps::Vector{PackageSpec})
+    println("begin to setup benchmark environment")
     Pkg.activate(BENCHMARK_PKG_PATH)
+    println("activate: $BENCHMARK_PKG_PATH")
     cd(BENCHMARK_PKG_PATH)
+    println("pwd is: $(pwd())")
 
     for dep in deps
         Pkg.add(dep)
@@ -161,7 +187,10 @@ end
 
 only pass the value of `init_dependencies()` (FLUXML_PKGS) to setup.
 """
-setup_fluxml_env() = setup(collect(v for (k,v) in init_dependencies()))
+function setup_fluxml_env()
+    setup(collect(v for (k,v) in init_dependencies()))
+    install_benchmark_basic_deps()
+end
 
 
 """
@@ -170,10 +199,10 @@ setup_fluxml_env() = setup(collect(v for (k,v) in init_dependencies()))
 is used to remove all the package installed, change dir and reactivate base.
 """
 function teardown()
-    print("yanwo?")
+    println("teardown benchmark environment")
     Pkg.rm(all_pkgs = true)
+    println("rm: clean all the packages")
     pwd = ENV["PWD"] # PWD in ENV means the original path where run the code
-    print("pwd: $pwd")
-    Pkg.activate(pwd)
+    println("pwd: $pwd")
     cd(pwd)
 end

@@ -3,3 +3,5 @@ Manifest.toml
 # Ignore for benchmarkpkg
 # Otherwise, crash because git fail to checkout when dirty
 benchmark/Project.toml
+benchmark/report.md
+benchmark/*.json
