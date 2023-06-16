@@ -4,6 +4,7 @@ authors = ["Kyle Daruwalla <daruwalla@wisc.edu> and contributors"]
 version = "1.0.0-DEV"
 
 [deps]
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 BenchmarkCI = "20533458-34a3-403d-a444-e18f38190b5b"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
@@ -12,6 +13,7 @@ PkgBenchmark = "32113eaa-f34f-5b0d-bd6c-c81e245fc73d"
 URIParser = "30578b45-9adc-5946-b283-645ec420af67"
 
 [compat]
+ArgParse = "1"
 BenchmarkCI = "0.1"
 BenchmarkTools = "1"
 PkgBenchmark = "0.2"

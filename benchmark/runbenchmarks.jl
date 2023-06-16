@@ -1,57 +1,48 @@
-# Adapted from
-# https://github.com/kul-forbes/ProximalOperators.jl/tree/master/benchmark
-using ArgParse
+using Pkg
+
+###########################################################################
+
+Pkg.develop(PackageSpec(path = ENV["PWD"]))
+using FluxMLBenchmarks
+parsed_args = parse_commandline()
+
+baseline = parsed_args["baseline"]
+setup_fluxml_env()
+
 using PkgBenchmark
-using FluxMLBenchmarks: markdown_report, display_markdown_report
+mkconfig(; kwargs...) = BenchmarkConfig(
+    env = Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1"));
+    kwargs...
+)
 
-function parse_commandline()
-    s = ArgParseSettings()
+group_baseline = benchmarkpkg(
+    dirname(@__DIR__),
+    mkconfig(id = baseline),
+    resultfile = joinpath(@__DIR__, "result-$(baseline).json")
+)
 
-    @add_arg_table! s begin
-        "--target"
-            help = "the branch/commit/tag to use as target"
-            default = "HEAD"
-        "--baseline"
-            help = "the branch/commit/tag to use as baseline"
-            default = "main"
-        "--retune"
-            help = "force re-tuning (ignore existing tuning data)"
-            action = :store_false
-    end
+teardown()
 
-    return parse_args(s)
-end
+###########################################################################
 
-function main()
-    parsed_args = parse_commandline()
+Pkg.develop(PackageSpec(path = ENV["PWD"]))
+using FluxMLBenchmarks
 
-    mkconfig(; kwargs...) =
-        BenchmarkConfig(
-            env = Dict(
-                "JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1"),
-            );
-            kwargs...
-        )
+target = parsed_args["target"]
+setup_fluxml_env()
 
-    baseline = parsed_args["baseline"]
-    group_baseline = benchmarkpkg(
-        dirname(@__DIR__),
-        mkconfig(id = baseline),
-        resultfile = joinpath(@__DIR__, "result-$(baseline).json"),
-        retune = parsed_args["retune"],
-    )
+using PkgBenchmark
+group_target = benchmarkpkg(
+    dirname(@__DIR__),
+    mkconfig(id = target),
+    resultfile = joinpath(@__DIR__, "result-$(target).json"),
+)
 
-    target = parsed_args["target"]
-    group_target = benchmarkpkg(
-        dirname(@__DIR__),
-        mkconfig(id = target),
-        resultfile = joinpath(@__DIR__, "result-$(target).json"),
-    )
+teardown()
 
-    judgement = judge(group_target, group_baseline)
-    report_md = markdown_report(judgement)
-    write(joinpath(@__DIR__, "report.md"), report_md)
-    display_markdown_report(report_md)
-end
+###########################################################################
 
-main()
+judgement = judge(group_target, group_baseline)
+report_md = markdown_report(judgement)
+write(joinpath(@__DIR__, "report.md"), report_md)
+display_markdown_report(report_md)
