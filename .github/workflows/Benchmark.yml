@@ -19,8 +19,8 @@ jobs:
   RunBenchmark:
     runs-on: ubuntu-latest
     env:
-      TARGET_URL: ${{ github.inputs.target_url || '${{ github.event.pull_request.head.repo.html_url }}#${{ github.event.pull_request.head.sha }}' }}
-      BASELINE_URL: ${{ github.inputs.baseline_url || '${{ github.event.pull_request.base.repo.html_url }}#${{ github.event.pull_request.base.sha }}' }}
+      TARGET_URL: ${{ github.event.inputs.target_url || '${{ github.event.pull_request.head.repo.html_url }}#${{ github.event.pull_request.head.sha }}' }}
+      BASELINE_URL: ${{ github.event.inputs.baseline_url || '${{ github.event.pull_request.base.repo.html_url }}#${{ github.event.pull_request.base.sha }}' }}
     steps:
       -
         run: |
