@@ -9,16 +9,17 @@ parsed_args = parse_commandline()
 baseline_url = parsed_args["baseline"]
 setup_fluxml_env(Vector([baseline_url]))
 
-using PkgBenchmark
-mkconfig(; kwargs...) = BenchmarkConfig(
-    env = Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1"));
-    kwargs...
-)
+using BenchmarkTools
+BenchmarkTools.DEFAULT_PARAMETERS.samples = 20
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2.5
 
+using PkgBenchmark
 group_baseline = benchmarkpkg(
     dirname(@__DIR__),
-    mkconfig(id = baseline),
-    resultfile = joinpath(@__DIR__, "result-$(baseline).json")
+    BenchmarkConfig(
+        env = Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1"))
+    ),
+    resultfile = joinpath(@__DIR__, "result-baseline.json")
 )
 
 teardown()
@@ -28,14 +29,20 @@ teardown()
 Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 
-target = parsed_args["target"]
-setup_fluxml_env()
+target_url = parsed_args["target"]
+setup_fluxml_env(Vector([target_url]))
+
+using BenchmarkTools
+BenchmarkTools.DEFAULT_PARAMETERS.samples = 20
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2.5
 
 using PkgBenchmark
 group_target = benchmarkpkg(
     dirname(@__DIR__),
-    mkconfig(id = target),
-    resultfile = joinpath(@__DIR__, "result-$(target).json"),
+    BenchmarkConfig(
+        env = Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1"))
+    ),
+    resultfile = joinpath(@__DIR__, "result-target.json"),
 )
 
 teardown()
