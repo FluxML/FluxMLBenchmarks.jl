@@ -6,8 +6,8 @@ Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 parsed_args = parse_commandline()
 
-baseline = parsed_args["baseline"]
-setup_fluxml_env()
+baseline_url = parsed_args["baseline"]
+setup_fluxml_env(Vector([baseline_url]))
 
 using PkgBenchmark
 mkconfig(; kwargs...) = BenchmarkConfig(

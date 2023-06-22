@@ -66,11 +66,11 @@ function get_name(dep::Dependency)
     if !isnothing(dep.name)
         dep.name
     elseif !isnothing(dep.url)
-        # TODO: maybe something wrong
+        # TODO: unable to handle renamed fork repo
         path_segments = split(URI(dep.url).path, "/")
         (length(path_segments) < 3) && throw(error(
             "Dependency URL ($(uri)) is not qualified"))
-        path_segments[3]
+        strip(path_segments[3], ['.', 'j', 'l'])
     else
         throw(error("Dependency is not qualified"))
     end
@@ -146,16 +146,20 @@ end
     parse_commandline
 
 is used to get command arguments.
+
+About url passed to Pkg.add, see https://pkgdocs.julialang.org/v1/managing-packages/#Adding-unregistered-packages
 """
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
-        "--target"
-            help = "the branch/commit/tag to use as target"
-            default = "HEAD"
-        "--baseline"
-            help = "the branch/commit/tag to use as baseline"
-            default = "main"
+        "target"
+            help = "Repo URL to use as target. No default value.
+                    e.g. https://github.com/FluxML/NNlib.jl#segfault"
+            required = true
+        "baseline"
+            help = "Repo URL to use as baseline. No default value.
+                    e.g. https://github.com/FluxML/NNlib.jl#segfault"
+            required = true
         "--retune"
             help = "force re-tuning (ignore existing tuning data)"
             action = :store_false
@@ -172,7 +176,6 @@ is used to activate environment, change dir and install dependencies.
 function setup(deps::Vector{PackageSpec})
     println("begin to setup benchmark environment")
     Pkg.activate(BENCHMARK_PKG_PATH)
-    println("activate: $BENCHMARK_PKG_PATH")
     cd(BENCHMARK_PKG_PATH)
     println("pwd is: $(pwd())")
 
@@ -193,6 +196,13 @@ function setup_fluxml_env()
 end
 
 
+function setup_fluxml_env(dependency_urls::Vector{String})
+    url_deps = map(url -> Dependency(url = url), dependency_urls)
+    setup(collect(v for (k,v) in init_dependencies(url_deps)))
+    install_benchmark_basic_deps()
+end
+
+
 """
     teardown
 
@@ -201,7 +211,6 @@ is used to remove all the package installed, change dir and reactivate base.
 function teardown()
     println("teardown benchmark environment")
     Pkg.rm(all_pkgs = true)
-    println("rm: clean all the packages")
     pwd = ENV["PWD"] # PWD in ENV means the original path where run the code
     println("pwd: $pwd")
     cd(pwd)
