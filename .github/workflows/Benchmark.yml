@@ -7,11 +7,25 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      target_url:
+        type: string
+        description: url of target
+      baseline_url:
+        type: string
+        description: url of baseline
 
 jobs:
   RunBenchmark:
     runs-on: ubuntu-latest
+    env:
+      TARGET_URL: ${{ github.inputs.target_url || github.event.pull_request.head.repo.html_url + "#" + github.event.pull_request.head.sha }}
+      BASELINE_URL: ${{ github.inputs.baseline_url || github.event.pull_request.base.repo.html_url + "#" + github.event.pull_request.base.sha }}
     steps:
+      -
+        run: |
+          echo "Target repo url: $TARGET_URL"
+          echo "Baseline repo url: $BASELINE_URL"
       -
         name: Checkout code
         uses: actions/checkout@v3
@@ -29,7 +43,7 @@ jobs:
         id: benchmark
         name: Run benchmark
         run: |
-          julia --project=benchmark benchmark/runbenchmarks.jl
+          julia --project=benchmark benchmark/runbenchmarks.jl $TARGET_URL $BASELINE_URL
       -
         name: Print report
         run: |
