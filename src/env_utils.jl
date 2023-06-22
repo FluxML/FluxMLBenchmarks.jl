@@ -67,10 +67,16 @@ function get_name(dep::Dependency)
         dep.name
     elseif !isnothing(dep.url)
         # TODO: unable to handle renamed fork repo
+        # e.g. dep.url == https://github.com/skyleaworlder/NNlib.jl#lppool
+        #      path_segments == ["", "skyleaworlder", "NNlib.jl"]
+        #      strip(path_segments[3], ['.', 'j', 'l']) == "NNlib"
         path_segments = split(URI(dep.url).path, "/")
         (length(path_segments) < 3) && throw(error(
             "Dependency URL ($(uri)) is not qualified"))
-        strip(path_segments[3], ['.', 'j', 'l'])
+        # e.g. dep.url == https://github.com/FluxML/NNlib.jl@v0.8.21
+        #      repo_name_segments == ["NNlib.jl", "v0.8.21"]
+        repo_name_segments = split(path_segments[3], "@")
+        strip(repo_name_segments[1], ['.', 'j', 'l'])
     else
         throw(error("Dependency is not qualified"))
     end
@@ -88,7 +94,26 @@ Currently, only support the following convertion:
 * name and version provided: PackageSpec(name = name, version = version)
 """
 function convert_to_packagespec(dep::Dependency)
-    if !isnothing(dep.url) PackageSpec(url = dep.url)
+    if !isnothing(dep.url)
+        # TODO: maybe only work in some cases
+        # see JuliaLang/Pkg.jl src/REPLMode/argument_parser.jl PackageToken
+        # and https://pkgdocs.julialang.org/v1/managing-packages/#Adding-unregistered-packages
+        #
+        # length(url_rev) < 2 => https://github.com/FluxML/NNlib.jl
+        # length(url_rev) == 2 => https://github.com/skyleaworlder/NNlib.jl#lppool
+        # rev can be a branch name or commit-SHA1-id
+        url_rev = split(dep.url, "#")
+        url_version = split(dep.url, "@")
+        println(url_rev, url_version)
+        if length(url_rev) == 2
+            PackageSpec(url = url_rev[1], rev = url_rev[2])
+        elseif length(url_version) == 2
+            PackageSpec(
+                url = url_version[1],
+                version = convert(String, url_version[2]))
+        else
+            PackageSpec(url = url_version[1])
+        end
     elseif !isnothing(dep.name)
         if !isnothing(dep.rev) PackageSpec(name = dep.name, rev = dep.rev)
         elseif !isnothing(dep.version) PackageSpec(name = dep.name, version = dep.version)
