@@ -32,6 +32,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Setup main branch locally without switching current branch
+        if: ${{ github.event_name == 'pull_request' }}
         run: git fetch origin main:main
       -
         name: Setup julia
