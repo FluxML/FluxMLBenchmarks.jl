@@ -46,7 +46,6 @@ struct Dependency
     version::Union{Nothing, String}
 end
 
-
 function Dependency(;name::Union{Nothing,String} = nothing,
                     url::Union{Nothing,String} = nothing,
                     rev::Union{Nothing,String} = nothing,
@@ -54,6 +53,26 @@ function Dependency(;name::Union{Nothing,String} = nothing,
     !isnothing(name) || !isnothing(url) || !isnothing(rev) ||
         isnothing(version) || throw(error("illegel input of Dependency"))
     Dependency(name, url, rev, version)
+end
+
+function Dependency(dep::String)
+    if (m = match(r"https://github.com/(.*?)/(.*?)#(.*?)$", dep)) !== nothing
+        Dependency(rev = string(m.captures[3]),
+            url = "https://github.com/$(m.captures[1])/$(m.captures[2])")
+    elseif (m = match(r"https://github.com/(.*?)/(.*?)@(.*?)$", dep)) !== nothing
+        Dependency(version = string(m.captures[3]),
+            url = "https://github.com/$(m.captures[1])/$(m.captures[2])")
+    elseif (m = match(r"https://github.com/(.*?)/(.*?)", dep)) !== nothing
+        Dependency(url = dep)
+    elseif (m = match(r"(.*?)#(.*?)$", dep)) !== nothing
+        Dependency(name = string(m.captures[1]),
+                   rev = string(m.captures[2]))
+    elseif (m = match(r"(.*?)@(.*?)$", dep)) !== nothing
+        Dependency(name = string(m.captures[1]),
+                   version = string(m.captures[2]))
+    else
+        Dependency(name = dep)
+    end
 end
 
 
@@ -110,7 +129,7 @@ function convert_to_packagespec(dep::Dependency)
         elseif length(url_version) == 2
             PackageSpec(
                 url = url_version[1],
-                version = convert(String, url_version[2]))
+                version = string(url_version[2]))
         else
             PackageSpec(url = url_version[1])
         end
@@ -177,19 +196,60 @@ About url passed to Pkg.add, see https://pkgdocs.julialang.org/v1/managing-packa
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
-        "target"
+        "--target"
             help = "Repo URL to use as target. No default value.
                     e.g. https://github.com/FluxML/NNlib.jl#segfault"
-            required = true
-        "baseline"
+            action = :store_arg
+        "--baseline"
             help = "Repo URL to use as baseline. No default value.
                     e.g. https://github.com/FluxML/NNlib.jl#segfault"
-            required = true
+            action = :store_arg
+        "--deps-list"
+            help = "This is a single string that simulates an array,
+                    with each element separated by a semicolon.
+                    Each element consists of two parts:
+                    the first part is a dependent version,
+                    and the second part is another dependent version.
+                    e.g. 'dep1,dep1a;dep2,dep2a;dep3,dep3b'"
+            action = :store_arg
         "--retune"
             help = "force re-tuning (ignore existing tuning data)"
             action = :store_false
     end
-    return parse_args(s)
+    args = parse_args(s)
+    !isnothing(args["deps-list"]) && return args
+    !isnothing(args["target"]) && !isnothing(args["baseline"]) &&
+        return args
+    throw(error(
+        "Must provide 'deps-list' or both 'target' and 'baseline' as command args"))
+end
+
+
+"""
+    parse_deps_list(deps_list::String)::Tuple{Vector{Dependency}, Vector{Dependency}}
+
+is used to parse command argument, "deps-list", to 2 sets of dependencies,
+which means parse_deps_list can support difference of multiple dependencies.
+Each element separated by a semicolon. Each element consists of two parts:
+the first part is baseline dependency, and the second part is target.
+Now, deps_list only supports FluxML packages.
+
+e.g. deps_list can be
+    "NNlib,https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test;Flux,Flux#0.13.12"
+"""
+function parse_deps_list(deps_list::String)::Tuple{Vector{Dependency}, Vector{Dependency}}
+    dep_pairs = filter(
+        dep_pair_vec -> length(dep_pair_vec) == 2,
+        map(
+            dep_pair -> split(dep_pair, ","),
+            split(deps_list, ";")))
+    baseline_deps = map(
+        baseline_dep -> Dependency(string(baseline_dep)),
+        map(x -> x[1], dep_pairs))
+    target_deps = map(
+        target_dep -> Dependency(string(target_dep)),
+        map(x -> x[2], dep_pairs))
+    return (baseline_deps, target_deps)
 end
 
 

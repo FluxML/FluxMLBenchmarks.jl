@@ -2,7 +2,8 @@ module FluxMLBenchmarks
 
 # Write your package code here.
 include("env_utils.jl")
-export Dependency, get_name, init_dependencies, parse_commandline,
+export Dependency, get_name, init_dependencies,
+    parse_commandline, parse_deps_list,
     setup_fluxml_env, teardown
 
 include("judge_utils.jl")
