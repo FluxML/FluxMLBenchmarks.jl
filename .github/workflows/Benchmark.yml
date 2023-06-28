@@ -43,7 +43,7 @@ jobs:
         id: benchmark
         name: Run benchmark
         run: |
-          julia --project=benchmark benchmark/runbenchmarks.jl $TARGET_URL $BASELINE_URL
+          julia --project=benchmark benchmark/runbenchmarks-pr.jl --target=$TARGET_URL --baseline=$BASELINE_URL
       -
         name: Print report
         run: |
