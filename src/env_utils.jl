@@ -86,18 +86,14 @@ function get_name(dep::Dependency)
         dep.name
     elseif !isnothing(dep.url)
         # TODO: unable to handle renamed fork repo
-        # e.g. dep.url == https://github.com/skyleaworlder/NNlib.jl#lppool
-        #      path_segments == ["", "skyleaworlder", "NNlib.jl"]
-        #      strip(path_segments[3], ['.', 'j', 'l']) == "NNlib"
-        path_segments = split(URI(dep.url).path, "/")
-        (length(path_segments) < 3) && throw(error(
-            "Dependency URL ($(uri)) is not qualified"))
-        # e.g. dep.url == https://github.com/FluxML/NNlib.jl@v0.8.21
-        #      repo_name_segments == ["NNlib.jl", "v0.8.21"]
-        repo_name_segments = split(path_segments[3], "@")
-        strip(repo_name_segments[1], ['.', 'j', 'l'])
+        # e.g. dep.url == https://github.com/skyleaworlder/NNlib.jl
+        #      m.captures == ["skyleaworlder", "NNlib"]
+        regex = r"https://github.com/(.*?)/(.*?).jl$"
+        (m = match(regex, dep.url)) !== nothing || throw(
+            "url ($(dep.url)) of Dependency not valid; need satisfy $(regex)")
+        m.captures[2]
     else
-        throw(error("Dependency is not qualified"))
+        throw(error("Dependency ($(dep)) is not valid"))
     end
 end
 
@@ -106,41 +102,26 @@ end
     convert_to_packagespec
 
 A convert function, used to convert Dependency to PackageSpec.
-Currently, only support the following convertion:
-
-* url provided: PackageSpec(url = url)
-* name and rev provided: PackageSpec(name = name, rev = rev)
-* name and version provided: PackageSpec(name = name, version = version)
 """
 function convert_to_packagespec(dep::Dependency)
     if !isnothing(dep.url)
-        # TODO: maybe only work in some cases
-        # see JuliaLang/Pkg.jl src/REPLMode/argument_parser.jl PackageToken
-        # and https://pkgdocs.julialang.org/v1/managing-packages/#Adding-unregistered-packages
-        #
-        # length(url_rev) < 2 => https://github.com/FluxML/NNlib.jl
-        # length(url_rev) == 2 => https://github.com/skyleaworlder/NNlib.jl#lppool
-        # rev can be a branch name or commit-SHA1-id
-        url_rev = split(dep.url, "#")
-        url_version = split(dep.url, "@")
-        println(url_rev, url_version)
-        if length(url_rev) == 2
-            PackageSpec(url = url_rev[1], rev = url_rev[2])
-        elseif length(url_version) == 2
-            PackageSpec(
-                url = url_version[1],
-                version = string(url_version[2]))
+        if !isnothing(dep.version)
+            PackageSpec(url = dep.url, version = dep.version)
+        elseif !isnothing(dep.rev)
+            PackageSpec(url = dep.url, rev = dep.rev)
         else
-            PackageSpec(url = url_version[1])
+            PackageSpec(url = dep.url)
         end
     elseif !isnothing(dep.name)
-        if !isnothing(dep.rev) PackageSpec(name = dep.name, rev = dep.rev)
-        elseif !isnothing(dep.version) PackageSpec(name = dep.name, version = dep.version)
-        else throw(error(
-            "illegel input: name is not nothing, but rev and version are nothing"))
+        if !isnothing(dep.version)
+            PackageSpec(name = dep.name, version = dep.version)
+        elseif !isnothing(dep.rev)
+            PackageSpec(name = dep.name, rev = dep.rev)
+        else
+            PackageSpec(name = dep.name)
         end
     else throw(error(
-        "illegel input: both name and url are nothing"))
+        "illegel input: both name and url are nothing ($(dep))"))
     end
 end
 
@@ -280,11 +261,14 @@ function setup_fluxml_env()
     install_benchmark_basic_deps()
 end
 
+function setup_fluxml_env(deps::Vector{Dependency})
+    setup(collect(v for (k,v) in init_dependencies(deps)))
+    install_benchmark_basic_deps()
+end
 
 function setup_fluxml_env(dependency_urls::Vector{String})
-    url_deps = map(url -> Dependency(url = url), dependency_urls)
-    setup(collect(v for (k,v) in init_dependencies(url_deps)))
-    install_benchmark_basic_deps()
+    url_deps = map(url -> Dependency(url), dependency_urls)
+    setup_fluxml_env(url_deps)
 end
 
 
