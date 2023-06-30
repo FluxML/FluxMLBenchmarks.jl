@@ -5,9 +5,10 @@ using Pkg
 Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 parsed_args = parse_commandline()
+deps_list = parsed_args["deps-list"]
+baseline_fluxml_deps, target_fluxml_deps = parse_deps_list(deps_list)
 
-baseline_url = parsed_args["baseline"]
-setup_fluxml_env(Vector([baseline_url]))
+setup_fluxml_env(baseline_fluxml_deps)
 
 using BenchmarkTools
 BenchmarkTools.DEFAULT_PARAMETERS.samples = 20
@@ -29,8 +30,7 @@ teardown()
 Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 
-target_url = parsed_args["target"]
-setup_fluxml_env(Vector([target_url]))
+setup_fluxml_env(target_fluxml_deps)
 
 using BenchmarkTools
 BenchmarkTools.DEFAULT_PARAMETERS.samples = 20
