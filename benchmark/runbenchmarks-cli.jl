@@ -4,9 +4,13 @@ using Pkg
 
 Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
+
 parsed_args = parse_commandline()
 deps_list = parsed_args["deps-list"]
 baseline_fluxml_deps, target_fluxml_deps = parse_deps_list(deps_list)
+enable_arg = parsed_args["enable"]
+disable_arg = parsed_args["disable"]
+enabled_benchmarks = parse_enabled_benchmarks(enable_arg, disable_arg)
 
 setup_fluxml_env(baseline_fluxml_deps)
 
@@ -18,7 +22,10 @@ using PkgBenchmark
 group_baseline = benchmarkpkg(
     dirname(@__DIR__),
     BenchmarkConfig(
-        env = Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1"))
+        env = merge(
+            Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1")),
+            enabled_benchmarks
+        )
     ),
     resultfile = joinpath(@__DIR__, "result-baseline.json")
 )
@@ -40,7 +47,10 @@ using PkgBenchmark
 group_target = benchmarkpkg(
     dirname(@__DIR__),
     BenchmarkConfig(
-        env = Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1"))
+        env = merge(
+            Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1")),
+            enabled_benchmarks
+        )
     ),
     resultfile = joinpath(@__DIR__, "result-target.json"),
 )
