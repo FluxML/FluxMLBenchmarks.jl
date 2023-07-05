@@ -4,7 +4,7 @@ module FluxMLBenchmarks
 include("env_utils.jl")
 export Dependency, get_name, init_dependencies,
     parse_commandline, parse_deps_list,
-    parse_enabled_benchmarks,
+    parse_enabled_benchmarks, FLUXML_AVAILABLE_BENCHMARKS,
     setup_fluxml_env, teardown
 
 include("judge_utils.jl")

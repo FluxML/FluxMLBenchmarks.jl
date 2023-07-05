@@ -321,14 +321,28 @@ Return a Dict as a part of environment variables, which will be used in Benchmar
 
 * enable_cmd_arg: A string containing a comma-separated list of enabled benchmarks.
 * disable_cmd_arg: A string containing a comma-separated list of disabled benchmarks.
+
+If `enable_cmd_arg` is not included in FLUXML_AVAILABLE_BENCHMARKS, it will be reported
+and ignored, which is similarly when `disable_cmd_arg` is not included in `enable_cmd_arg`.
 """
 function parse_enabled_benchmarks(
                                     enable_cmd_arg::String,
                                     disable_cmd_arg::String
                                 )::Dict{String, Bool}
+    function remove_invalid(input, baseline)
+        invalid_benchmarks = [e for e in input if !(e in baseline)]
+        valid_benchmarks = [e for e in input if e in baseline]
+        for e in invalid_benchmarks
+            @warn "$e is not a part of benchmarks, please check the files in $BENCHMARK_FILES_PATH"
+        end
+        return valid_benchmarks
+    end
+
     cmd_enable = filter(!isempty, map(string, split(enable_cmd_arg, ",")))
     cmd_disable = filter(!isempty, map(string, split(disable_cmd_arg, ",")))
-    remain_benchmark_files_name = setdiff(cmd_enable, cmd_disable)
+    valid_cmd_enable = remove_invalid(cmd_enable, FLUXML_AVAILABLE_BENCHMARKS)
+    valid_cmd_disable = remove_invalid(cmd_disable, union(cmd_enable, FLUXML_AVAILABLE_BENCHMARKS))
+    remain_benchmark_files_name = setdiff(valid_cmd_enable, valid_cmd_disable)
     return Dict(
         "FLUXML_BENCHMARK_$(uppercase(fn))" => true
         for fn in remain_benchmark_files_name
