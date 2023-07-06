@@ -139,3 +139,62 @@ for rank in (2,), N in (20, ), K in (2, 4,), stride in (1, 2, 4)
             ]["maxpool$(rank)d-nnpack"]["pool"] = @benchmarkable NNlib.maxpool_nnpack!($y, $x, $pdims)
     end
 end
+
+
+########## dropout ############
+SUITE["dropout"] = BenchmarkGroup()
+for rank in (2,), N in (10^2, 10^3, 10^4)
+    size_suite = BenchmarkGroup()
+    SUITE["dropout"]["$(rank+2)-N($N)"] = size_suite
+
+    x = ones(Float32, repeat([N], rank)..., 1, 1)
+    y = zeros(Float32, repeat([N], rank)..., 1, 1)
+    p = 0.2
+
+    dropout_suite = BenchmarkGroup()
+    dropout_suite["with-colon"] = @benchmarkable dropout($x, $p)
+    dropout_suite["with-dim"] = @benchmarkable dropout($x, $p; dims = 1)
+    SUITE["dropout"]["$(rank+2)-N($N)"]["dropout"] = dropout_suite
+
+    dropout!_suite = BenchmarkGroup()
+    dropout!_suite["with-colon"] = @benchmarkable dropout!($y, $x, $p)
+    dropout!_suite["with-dim"] = @benchmarkable dropout!($y, $x, $p; dims = 1)
+    SUITE["dropout"]["$(rank+2)-N($N)"]["dropout!"] = dropout!_suite
+end
+
+
+########## upsample ############
+SUITE["upsample"] = BenchmarkGroup()
+SUITE["upsample"]["linear"] = BenchmarkGroup()
+for rank in (2,), et in (Float16, Float32)
+    et_suite = BenchmarkGroup("fw" => BenchmarkGroup(), "bw" => BenchmarkGroup())
+    SUITE["upsample"]["linear"][string(et)] = et_suite
+
+    inputs_sizes = [
+        (128, 2, true), (128, (1, 2), false), (256, 4, true),
+        (256, 8, false), (1024, (0.5, 2), false),
+    ]
+    for (sz, scale, ac) in inputs_sizes
+        x = ones(et, repeat([sz], rank)..., 1, 1)
+        et_suite["fw"][
+            "$(rank+2)-N($sz)-scale($scale)"
+            ] = @benchmarkable upsample_linear($x, $scale; align_corners = $ac)
+        et_suite["bw"][
+            "$(rank+2)-N($sz)-scale($scale)"
+            ] = @benchmarkable ∇upsample_linear($x;
+                size = (typeof($scale) <: Tuple) ?
+                    floor.(Integer, $sz .* $scale) :
+                    ntuple(_ -> floor(Integer, $sz * $scale), $rank),
+                align_corners = $ac)
+    end
+end
+
+SUITE["upsample"]["nearest"] = BenchmarkGroup()
+for rank in (2,), N in (128, 512, 2048,)
+    et_suite = BenchmarkGroup()
+    for et in (Float16, Float32, Float64)
+        x = zeros(Float32, repeat([N], rank)..., 1, 1)
+        et_suite[string(et)] = @benchmarkable upsample_nearest($x; size = (repeat([$N * 10], $rank)..., 1, 1))
+    end
+    SUITE["upsample"]["nearest"]["$(rank+2)-N($N)"] = et_suite
+end
