@@ -6,7 +6,7 @@ using URIParser
 BENCHMARK_PKG_PATH means the relative path of benchmark folder,
 which should be changed if the benchmark code is moved elsewhere.
 """
-const BENCHMARK_PKG_PATH = "./benchmark/"
+const BENCHMARK_PKG_PATH = "./benchmark"
 
 """
 BENCHMARK_BASIC_DEPS mean the dependencies required to be installed before
@@ -26,6 +26,21 @@ const FLUXML_PKGS = [
     "Flux", "NNlib", "Zygote", "NNlibCUDA", "Optimisers", "OneHotArrays",
     "Functors", "ZygoteRules", "IRTools", "MacroTools"
 ]
+
+"""
+BENCHMARK_FILES_PATH means the folder containing benchmark files.
+FLUXML_AVAILABLE_BENCHMARKS is a vector, each element of it means
+an available benchmark file under BENCHMARK_FILES_PATH.
+"""
+const BENCHMARK_FILES_PATH = "$(BENCHMARK_PKG_PATH)/benchmark"
+const FLUXML_AVAILABLE_BENCHMARKS = filter(
+    !isnothing,
+    map(readdir(BENCHMARK_FILES_PATH)) do file_name
+        if (m = match(r"(.*?).jl$", file_name)) !== nothing
+            string(m.captures[1])
+        end
+    end
+)
 
 
 """
@@ -177,6 +192,18 @@ About url passed to Pkg.add, see https://pkgdocs.julialang.org/v1/managing-packa
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--enable"
+            help = "Specified benchmark sections to execute.
+                    e.g. flux,nnlib,optimisers
+                    By default, all benchmarks are enabled."
+            action = :store_arg
+            default = reduce((x,y) -> "$x,$y", FLUXML_AVAILABLE_BENCHMARKS)
+        "--disable"
+            help = "Specified benchmark sections not to execute,
+                    e.g. nnlib,flux
+                    no benchmarks are disabled by default."
+            action = :store_arg
+            default = ""
         "--target"
             help = "Repo URL to use as target. No default value.
                     e.g. https://github.com/FluxML/NNlib.jl#segfault"
@@ -283,4 +310,41 @@ function teardown()
     pwd = ENV["PWD"] # PWD in ENV means the original path where run the code
     println("pwd: $pwd")
     cd(pwd)
+end
+
+
+"""
+    parse_enabled_benchmarks(enable_cmd_arg::String, disable_cmd_arg::String)
+
+is used to parses command-line arguments to determine the enabled benchmarks.
+Return a Dict as a part of environment variables, which will be used in BenchmarkConfig.
+
+* enable_cmd_arg: A string containing a comma-separated list of enabled benchmarks.
+* disable_cmd_arg: A string containing a comma-separated list of disabled benchmarks.
+
+If `enable_cmd_arg` is not included in FLUXML_AVAILABLE_BENCHMARKS, it will be reported
+and ignored, which is similarly when `disable_cmd_arg` is not included in `enable_cmd_arg`.
+"""
+function parse_enabled_benchmarks(
+                                    enable_cmd_arg::String,
+                                    disable_cmd_arg::String
+                                )::Dict{String, Bool}
+    function remove_invalid(input, baseline)
+        invalid_benchmarks = [e for e in input if !(e in baseline)]
+        valid_benchmarks = [e for e in input if e in baseline]
+        for e in invalid_benchmarks
+            @warn "$e is not a part of benchmarks, please check the files in $BENCHMARK_FILES_PATH"
+        end
+        return valid_benchmarks
+    end
+
+    cmd_enable = filter(!isempty, map(string, split(enable_cmd_arg, ",")))
+    cmd_disable = filter(!isempty, map(string, split(disable_cmd_arg, ",")))
+    valid_cmd_enable = remove_invalid(cmd_enable, FLUXML_AVAILABLE_BENCHMARKS)
+    valid_cmd_disable = remove_invalid(cmd_disable, union(cmd_enable, FLUXML_AVAILABLE_BENCHMARKS))
+    remain_benchmark_files_name = setdiff(valid_cmd_enable, valid_cmd_disable)
+    return Dict(
+        "FLUXML_BENCHMARK_$(uppercase(fn))" => true
+        for fn in remain_benchmark_files_name
+    )
 end

@@ -1,5 +1,16 @@
 @testset "env_utils_test" begin
 
+    @testset "check benchmark location" begin
+        @test BENCHMARK_PKG_PATH == "./benchmark"
+        @test BENCHMARK_FILES_PATH == "./benchmark/benchmark"
+    end
+
+    @testset "check existed benchmarks" begin
+        @test (length(FLUXML_AVAILABLE_BENCHMARKS) == 2 &&
+               "flux" in FLUXML_AVAILABLE_BENCHMARKS &&
+               "nnlib" in FLUXML_AVAILABLE_BENCHMARKS)
+    end
+
     @testset "Dependency" begin
         flux_dep = Dependency("Flux")
         @test flux_dep.name == "Flux"
@@ -45,5 +56,37 @@
                target_deps[1].rev == "dummy-benchmark-test" &&
                target_deps[2].name == "Flux" &&
                target_deps[2].version == "0.13.12")
+    end
+
+    @testset "parse enabled benchmarks" begin
+        default_enable = reduce((x,y) -> "$x,$y", FLUXML_AVAILABLE_BENCHMARKS)
+        default_disable = ""
+
+        eb0 = parse_enabled_benchmarks(default_enable, default_disable)
+        @test length(eb0) == length(FLUXML_AVAILABLE_BENCHMARKS)
+
+        disable0 = "nnlib,flux"
+        eb1 = parse_enabled_benchmarks(default_enable, disable0)
+        @test length(eb1) == length(FLUXML_AVAILABLE_BENCHMARKS) - 2
+
+        enable0 = "flux,nnlib,zygote"
+        eb2 = parse_enabled_benchmarks(enable0, default_disable)
+        @test (length(eb2) == 2 &&
+               get(eb2, "FLUXML_BENCHMARK_FLUX", false) &&
+               get(eb2, "FLUXML_BENCHMARK_NNLIB", false) &&
+               !get(eb2, "FLUXML_BENCHMARK_ZYGOTE", false))
+
+        enable1 = "flux,nnlib,zygote"
+        disable1 = "zygote,flux"
+        eb3 = parse_enabled_benchmarks(enable1, disable1)
+        @test (length(eb3) == 1 &&
+               !get(eb3, "FLUXML_BENCHMARK_FLUX", false) &&
+               !get(eb3, "FLUXML_BENCHMARK_ZYGOTE", false) &&
+               get(eb3, "FLUXML_BENCHMARK_NNLIB", false))
+
+        disable2 = "flux,not_existed_package,unknown_package"
+        eb4 = parse_enabled_benchmarks(default_enable, disable2)
+        @test (length(eb4) == length(FLUXML_AVAILABLE_BENCHMARKS) - 1 &&
+               !get(eb3, "FLUXML_BENCHMARK_FLUX", false))
     end
 end
