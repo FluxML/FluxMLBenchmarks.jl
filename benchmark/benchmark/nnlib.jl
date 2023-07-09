@@ -4,7 +4,7 @@ using Random
 
 ########## activations ############
 SUITE["activations"] = BenchmarkGroup()
-for et in (Float16, Float32, Float64)
+for et in (Float64, Float32, Float16,)
     et_suite = BenchmarkGroup()
     SUITE["activations"][string(et)] = et_suite
     let x = rand(et, 1024, 1024), y = similar(x)
@@ -22,10 +22,10 @@ for (fn!, fn_bw) in [(softmax!, NNlib.∇softmax_data), (logsoftmax!, NNlib.∇l
     fn_suite = BenchmarkGroup()
     SUITE["softmax"][rstrip(string(fn!), '!')] = fn_suite
     let SIZES = [
-        (128, 384, 8), (512, 784, 8), (768, 1024, 4), (1024, 2048, 4),
-        (2048, 2048, 2), (4096, 2048, 2), (4096, 4096, 2), (12288, 2048, 1)
+        (12288, 2048, 1), (4096, 4096, 2), (4096, 2048, 2), (2048, 2048, 2),
+        (1024, 2048, 4), (768, 1024, 4), (512, 784, 8), (128, 384, 8),
     ]
-        for et in (Float16, Float32)
+        for et in (Float32, Float16,)
             et_suite = BenchmarkGroup("fw" => BenchmarkGroup(), "bw" => BenchmarkGroup())
             fn_suite[string(et)] = et_suite
             for sz in SIZES
@@ -43,9 +43,9 @@ end
 
 ########## conv ############
 SUITE["conv"] = BenchmarkGroup()
-for rank in (1, 2, 3,), N in (20,), K in (3,),
+for rank in (3, 2, 1,), N in (512, 256,), K in (3,),
     C_in in (1,), C_out in (1,),
-    stride in (1,), dilation in (1,), padding in (0,2)
+    stride in (1,), dilation in (1,), padding in (2, 0,)
 
     size_suite = BenchmarkGroup()
     SUITE["conv"][
@@ -103,7 +103,7 @@ end
 
 ########## pooling ############
 SUITE["pooling"] = BenchmarkGroup()
-for rank in (2,), N in (20, ), K in (2, 4,), stride in (1, 2, 4)
+for rank in (3, 2, 1,), N in (512, 256,), K in (4, 2,), stride in (4, 2, 1,)
     size_suite = BenchmarkGroup()
     SUITE["pooling"]["$(rank+2)-N($N)-K($K)-stride($stride)"] = size_suite
 
@@ -143,7 +143,7 @@ end
 
 ########## dropout ############
 SUITE["dropout"] = BenchmarkGroup()
-for rank in (2,), N in (10^2, 10^3, 10^4)
+for rank in (1, 2, 3,), N in (128, 512, 1024,)
     size_suite = BenchmarkGroup()
     SUITE["dropout"]["$(rank+2)-N($N)"] = size_suite
 
@@ -166,13 +166,13 @@ end
 ########## upsample ############
 SUITE["upsample"] = BenchmarkGroup()
 SUITE["upsample"]["linear"] = BenchmarkGroup()
-for rank in (2,), et in (Float16, Float32)
+for rank in (3, 2, 1,), et in (Float32, Float16,)
     et_suite = BenchmarkGroup("fw" => BenchmarkGroup(), "bw" => BenchmarkGroup())
     SUITE["upsample"]["linear"][string(et)] = et_suite
 
     inputs_sizes = [
-        (128, 2, true), (128, (1, 2), false), (256, 4, true),
-        (256, 8, false), (1024, (0.5, 2), false),
+        (1024, (0.5, 2), false), (256, 8, false),
+        (256, 4, true), (128, (1, 2), false), (128, 2, true),
     ]
     for (sz, scale, ac) in inputs_sizes
         x = ones(et, repeat([sz], rank)..., 1, 1)
@@ -190,14 +190,15 @@ for rank in (2,), et in (Float16, Float32)
 end
 
 SUITE["upsample"]["nearest"] = BenchmarkGroup()
-for rank in (2,), N in (128, 512, 2048,)
+for rank in (3, 2, 1,), N in (1024, 512, 128,)
     et_suite = BenchmarkGroup()
-    for et in (Float16, Float32, Float64)
+    for et in (Float64, Float32, Float16,)
         x = zeros(Float32, repeat([N], rank)..., 1, 1)
         et_suite[string(et)] = @benchmarkable upsample_nearest($x; size = (repeat([$N * 10], $rank)..., 1, 1))
     end
     SUITE["upsample"]["nearest"]["$(rank+2)-N($N)"] = et_suite
 end
+
 
 ########## gemm ############
 SUITE["gemm"] = BenchmarkGroup()
@@ -210,9 +211,9 @@ for et in (Float32, Float64)
     # transA and transB are not of the main varaints.
     # gemm! meets some memory problem, not included here.
     input_items = [
-        (Val(false), Val(false), 'N', 'N', 80, 40, 100, et(1.0), et(0.0)),
-        (Val(false), Val(false), 'N', 'N', 512, 512, 128, et(0.5), et(1.0)),
         (Val(false), Val(false), 'N', 'N', 1024, 1024, 1024, et(0.5), et(0.0)),
+        (Val(false), Val(false), 'N', 'N', 512, 512, 128, et(0.5), et(1.0)),
+        (Val(false), Val(false), 'N', 'N', 80, 40, 100, et(1.0), et(0.0)),
     ]
     for (transA, transB, transA_ch, transB_ch, M, N, K, alpha, beta) in input_items
         bA = ones(et, M, N, 1)
@@ -235,9 +236,9 @@ for et in (Float16, Float64)
     SUITE["attention"][string(et)] = et_suite
 
     input_items = [
-        ((8,6,1), (8,10,1), (4,10,1), nothing, 1),
-        ((64,64,16), (64,64,16), (64,64,16), (64,64), 4),
         ((16,128,8), (16,512,8), (32,512,8), (512,128), 4),
+        ((64,64,16), (64,64,16), (64,64,16), (64,64), 4),
+        ((8,6,1), (8,10,1), (4,10,1), nothing, 1),
     ]
     for (q_sz, k_sz, v_sz, bias_sz, nheads) in input_items
         q, q_score = rand(et, q_sz...), rand(et, 8, q_sz...)
