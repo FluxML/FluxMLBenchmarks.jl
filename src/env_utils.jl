@@ -338,8 +338,9 @@ function parse_enabled_benchmarks(
         return valid_benchmarks
     end
 
-    cmd_enable = filter(!isempty, map(string, split(enable_cmd_arg, ",")))
-    cmd_disable = filter(!isempty, map(string, split(disable_cmd_arg, ",")))
+    cmd_enable = filter(!isempty, map(string, split(enable_cmd_arg, ";")))
+    cmd_disable = filter(!isempty, map(string, split(disable_cmd_arg, ";")))
+    println(cmd_enable, cmd_disable)
     valid_cmd_enable = remove_invalid(cmd_enable, FLUXML_AVAILABLE_BENCHMARKS)
     valid_cmd_disable = remove_invalid(cmd_disable, union(cmd_enable, FLUXML_AVAILABLE_BENCHMARKS))
     remain_benchmark_files_name = setdiff(valid_cmd_enable, valid_cmd_disable)
