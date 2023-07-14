@@ -1,10 +1,13 @@
 name: Benchmark
 on:
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
+      repository:
+        type: string
+        description: name of repository triggers this workflow, e.g. FluxML/NNlib.jl
+      pr_id:
+        type: string
+        description: id of the pull request that triggers this workflow
       target_url:
         type: string
         description: url of target
@@ -52,3 +55,21 @@ jobs:
         with:
           name: report.md
           path: benchmark/report.md
+  Comment:
+    needs: [RunBenchmark]
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.repository != '' && github.event.inputs.pr_id != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Download report
+        uses: actions/download-artifact@v3
+        with:
+          name: report.md
+      -
+        name: Comment
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          repository: ${{ github.event.inputs.repository }}
+          issue-number: ${{ github.event.inputs.pr_id }}
+          token: ${{ secrets.PAT }}
+          body-file: report.md
