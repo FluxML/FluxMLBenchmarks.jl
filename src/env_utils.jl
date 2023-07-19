@@ -29,18 +29,13 @@ const FLUXML_PKGS = [
 
 """
 BENCHMARK_FILES_PATH means the folder containing benchmark files.
-FLUXML_AVAILABLE_BENCHMARKS is a vector, each element of it means
+FLUXML_AVAILABLE_TOP_LEVEL_BENCHMARKS is a vector, each element of it means
 an available benchmark file under BENCHMARK_FILES_PATH.
 """
 const BENCHMARK_FILES_PATH = "$(BENCHMARK_PKG_PATH)/benchmark"
-const FLUXML_AVAILABLE_BENCHMARKS = filter(
-    !isnothing,
-    map(readdir(BENCHMARK_FILES_PATH)) do file_name
-        if (m = match(r"(.*?).jl$", file_name)) !== nothing
-            string(m.captures[1])
-        end
-    end
-)
+const FLUXML_AVAILABLE_TOP_LEVEL_BENCHMARKS = [
+    "flux", "nnlib"
+]
 
 
 """
@@ -197,7 +192,7 @@ function parse_commandline()
                     e.g. flux,nnlib,optimisers
                     By default, all benchmarks are enabled."
             action = :store_arg
-            default = reduce((x,y) -> "$x,$y", FLUXML_AVAILABLE_BENCHMARKS)
+            default = reduce((x,y) -> "$x,$y", FLUXML_AVAILABLE_TOP_LEVEL_BENCHMARKS)
         "--disable"
             help = "Specified benchmark sections not to execute,
                     e.g. nnlib,flux
@@ -322,27 +317,64 @@ Return a Dict as a part of environment variables, which will be used in Benchmar
 * enable_cmd_arg: A string containing a comma-separated list of enabled benchmarks.
 * disable_cmd_arg: A string containing a comma-separated list of disabled benchmarks.
 
-If `enable_cmd_arg` is not included in FLUXML_AVAILABLE_BENCHMARKS, it will be reported
+If `enable_cmd_arg` is not included in FLUXML_AVAILABLE_TOP_LEVEL_BENCHMARKS, it will be reported
 and ignored, which is similarly when `disable_cmd_arg` is not included in `enable_cmd_arg`.
 """
 function parse_enabled_benchmarks(
                                     enable_cmd_arg::String,
                                     disable_cmd_arg::String
                                 )::Dict{String, Bool}
-    function remove_invalid(input, baseline)
-        invalid_benchmarks = [e for e in input if !(e in baseline)]
-        valid_benchmarks = [e for e in input if e in baseline]
-        for e in invalid_benchmarks
-            @warn "$e is not a part of benchmarks, please check the files in $BENCHMARK_FILES_PATH"
+    """
+    segment :== <name> | <name>:<names>
+    <names> :== <name>,<names> | ϵ
+    """
+    function handle_single_repo_benchmarks(segment)
+        single_repo_benchmarks = []
+        if isempty(segment)
+            return single_repo_benchmarks
+        elseif (m = match(r"^(.*?):(.+)$", segment)) !== nothing
+            # e.g. top_level_bg: flux or nnlib
+            # e.g. second_level_bgs: activations,gemm
+            top_level_bg, second_level_bgs = m.captures[1], m.captures[2]
+            if !isdir("$BENCHMARK_FILES_PATH/$top_level_bg")
+                @warn "$top_level_bg is not a dir under $BENCHMARK_FILES_PATH"
+                return single_repo_benchmarks
+            end
+            push!(single_repo_benchmarks, top_level_bg)
+            for second_bg in map(string, split(second_level_bgs, ","))
+                push!(single_repo_benchmarks, "$(top_level_bg)_$(second_bg)")
+            end
+        else
+            # e.g. top_level_bg: flux or nnlib
+            top_level_bg = segment
+            if !isdir("$BENCHMARK_FILES_PATH/$top_level_bg")
+                @warn "$top_level_bg is not a dir under $BENCHMARK_FILES_PATH"
+                return single_repo_benchmarks
+            end
+            push!(single_repo_benchmarks, top_level_bg)
+            for fn in readdir("$BENCHMARK_FILES_PATH/$top_level_bg")
+                if (m = match(r"^(.*?).jl$", fn)) !== nothing
+                    push!(single_repo_benchmarks, "$(top_level_bg)_$(m.captures[1])")
+                end
+            end
         end
-        return valid_benchmarks
+        return single_repo_benchmarks
     end
 
-    cmd_enable = filter(!isempty, map(string, split(enable_cmd_arg, ",")))
-    cmd_disable = filter(!isempty, map(string, split(disable_cmd_arg, ",")))
-    valid_cmd_enable = remove_invalid(cmd_enable, FLUXML_AVAILABLE_BENCHMARKS)
-    valid_cmd_disable = remove_invalid(cmd_disable, union(cmd_enable, FLUXML_AVAILABLE_BENCHMARKS))
-    remain_benchmark_files_name = setdiff(valid_cmd_enable, valid_cmd_disable)
+    cmd_enable = split(enable_cmd_arg, ";")
+    cmd_disable = split(disable_cmd_arg, ";")
+    enable_benchmarks = reduce(vcat,
+        filter(!isempty ∘ !isnothing,
+            map(handle_single_repo_benchmarks, cmd_enable))
+        ; init = [])
+    disable_benchmarks = reduce(vcat,
+        filter(!isempty ∘ !isnothing,
+            map(handle_single_repo_benchmarks, cmd_disable))
+        ; init = [])
+    valid_enable_benchmarks = map(string, enable_benchmarks)
+    valid_disable_benchmarks = map(string, disable_benchmarks)
+    remain_benchmark_files_name = setdiff(
+        valid_enable_benchmarks, valid_disable_benchmarks)
     return Dict(
         "FLUXML_BENCHMARK_$(uppercase(fn))" => true
         for fn in remain_benchmark_files_name
