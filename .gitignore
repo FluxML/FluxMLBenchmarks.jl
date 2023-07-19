@@ -5,3 +5,6 @@ Manifest.toml
 benchmark/Project.toml
 benchmark/report.md
 benchmark/*.json
+
+# Ignore for artifact mock
+fluxml-benchmark-result-*/

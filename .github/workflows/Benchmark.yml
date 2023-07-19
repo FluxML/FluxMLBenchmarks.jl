@@ -21,6 +21,13 @@ jobs:
     env:
       TARGET_URL: ${{ github.event.inputs.target_url || format('{0}#{1}', github.event.pull_request.head.repo.html_url, github.event.pull_request.head.sha) }}
       BASELINE_URL: ${{ github.event.inputs.baseline_url || format('{0}#{1}', github.event.pull_request.base.repo.html_url, github.event.pull_request.base.sha) }}
+    strategy:
+      matrix:
+        bm: [
+          "nnlib:attention,activations", "nnlib:conv",
+          "nnlib:pooling,softmax", "nnlib:dropout,gemm,upsample",
+          "flux"
+        ]
     steps:
       -
         run: |
@@ -31,9 +38,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Setup main branch locally without switching current branch
-        if: ${{ github.event_name == 'pull_request' }}
-        run: git fetch origin main:main
       -
         name: Setup julia
         uses: julia-actions/setup-julia@v1
@@ -44,7 +48,7 @@ jobs:
         id: benchmark
         name: Run benchmark
         run: |
-          julia --project=benchmark benchmark/runbenchmarks-pr.jl --target=$TARGET_URL --baseline=$BASELINE_URL
+          julia --project=benchmark benchmark/runbenchmarks-pr.jl --target=$TARGET_URL --baseline=$BASELINE_URL --enable=${{ matrix.bm }}
       -
         name: Print report
         run: |
@@ -53,10 +57,35 @@ jobs:
         name: Upload report
         uses: actions/upload-artifact@v2
         with:
-          name: report.md
-          path: benchmark/report.md
-  Comment:
+          name: fluxml-benchmark-result-${{ matrix.bm }}
+          path: ｜
+            benchmark/result-baseline.json
+            benchmark/result-target.json
+
+  MergeReport:
     needs: [RunBenchmark]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Download all reports
+        uses: actions/download-artifact@v3
+      - uses: actions/checkout@v3
+      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/julia-buildpkg@v1
+      -
+        name: Merge reports
+        run: |
+          julia --project=benchmark benchmark/mergereports-cli.jl
+      -
+        name: Upload final report
+        uses: actions/upload-artifact@v2
+        with:
+          name: final-report
+          path: benchmark/report.md
+
+  Comment:
+    needs: [MergeReport]
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.repository != '' && github.event.inputs.pr_id != '' }}
     runs-on: ubuntu-latest
     steps:
@@ -64,7 +93,7 @@ jobs:
         name: Download report
         uses: actions/download-artifact@v3
         with:
-          name: report.md
+          name: final-report
       -
         name: Comment
         uses: peter-evans/create-or-update-comment@v2
