@@ -1,9 +1,14 @@
 ########## conv ############
 SUITE["nnlib"]["conv"] = BenchmarkGroup()
-for rank in (3, 2, 1,), N in (512, 256,), K in (3,),
-    C_in in (1,), C_out in (1,),
-    stride in (1,), dilation in (1,), padding in (2, 0,)
 
+SIZES = [
+    (3, 256, 3, 1, 1, 1, 1, 0),
+    (2, 512, 3, 1, 1, 1, 1, 2),
+    (2, 256, 3, 1, 1, 1, 1, 2),
+    (1, 512, 3, 1, 1, 1, 1, 0),
+    (1, 256, 3, 1, 1, 1, 1, 0),
+]
+for (rank, N, K, C_in, C_out, stride, dilation, padding) in SIZES
     size_suite = BenchmarkGroup()
     SUITE["nnlib"]["conv"][
         "$(rank+2)-N($N)-K($K)-in($C_in)-out($C_out)-stride($stride)-dilation($dilation)-padding($padding)"
