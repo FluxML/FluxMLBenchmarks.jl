@@ -15,9 +15,6 @@ enabled_benchmarks = parse_enabled_benchmarks(enable_arg, disable_arg)
 setup_fluxml_env(baseline_fluxml_deps)
 
 using BenchmarkTools
-BenchmarkTools.DEFAULT_PARAMETERS.samples = 20
-BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2.5
-
 using PkgBenchmark
 group_baseline = benchmarkpkg(
     dirname(@__DIR__),
@@ -40,9 +37,6 @@ using FluxMLBenchmarks
 setup_fluxml_env(target_fluxml_deps)
 
 using BenchmarkTools
-BenchmarkTools.DEFAULT_PARAMETERS.samples = 20
-BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2.5
-
 using PkgBenchmark
 group_target = benchmarkpkg(
     dirname(@__DIR__),
