@@ -4,7 +4,11 @@ using Random
 foreach(println, ENV) # to check environment variables
 
 register_benchmark(env_name::String, benchmark_file::String) =
-    get(ENV, env_name, "false") == "true" && include(benchmark_file)
+    get(ENV, env_name, "false") == "true" && (
+        @info "Begin to @benchmarkable $benchmark_file";    
+        include(benchmark_file);
+        @info "End   to @benchmarkable $benchmark_file"
+    )
 
 Random.seed!(1234567890)
 const SUITE = BenchmarkGroup()

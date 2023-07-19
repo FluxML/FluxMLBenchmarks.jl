@@ -24,8 +24,8 @@ jobs:
     strategy:
       matrix:
         bm: [
-          "nnlib:attention,activations,gemm", "nnlib:conv",
-          "nnlib:pooling,softmax", "nnlib:dropout,upsample",
+          "nnlib:attention,activations", "nnlib:gemm", "nnlib:conv",
+          "nnlib:pooling,softmax", "nnlib:dropout", "nnlib:upsample",
           "flux"
         ]
     steps:
