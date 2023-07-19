@@ -6,7 +6,7 @@ for rank in (3, 2, 1,), et in (Float32, Float16,)
     SUITE["nnlib"]["upsample"]["linear"][string(et)] = et_suite
 
     inputs_sizes = [
-        (1024, (0.5, 2), false), (256, 8, false),
+        (512, (0.5, 2), false), (256, 8, false),
         (256, 4, true), (128, (1, 2), false), (128, 2, true),
     ]
     for (sz, scale, ac) in inputs_sizes
@@ -25,7 +25,7 @@ for rank in (3, 2, 1,), et in (Float32, Float16,)
 end
 
 SUITE["nnlib"]["upsample"]["nearest"] = BenchmarkGroup()
-for rank in (3, 2, 1,), N in (1024, 512, 128,)
+for rank in (3, 2, 1,), N in (512, 256, 128,)
     et_suite = BenchmarkGroup()
     for et in (Float64, Float32, Float16,)
         x = zeros(Float32, repeat([N], rank)..., 1, 1)

@@ -24,8 +24,8 @@ jobs:
     strategy:
       matrix:
         bm: [
-          "nnlib:attention,activations", "nnlib:conv",
-          "nnlib:pooling,softmax", "nnlib:dropout,gemm,upsample",
+          "nnlib:attention,activations,gemm", "nnlib:conv",
+          "nnlib:pooling,softmax", "nnlib:dropout,upsample",
           "flux"
         ]
     steps:
@@ -102,3 +102,14 @@ jobs:
           issue-number: ${{ github.event.inputs.pr_id }}
           token: ${{ secrets.PAT }}
           body-file: report.md
+
+  DryPrint:
+    needs: [MergeReport]
+    if: ${{ github.event.inputs.repository == '' || github.event.inputs.pr_id == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: final-report
+      - run: |
+          cat report.md
