@@ -80,9 +80,11 @@ Benchmarking always takes amount of time. In order to focus on the targets and r
 
 For specification, `Enabled Parts` and `Disabled Parts` have the same format, which is a single string that simulates an array, with each element separated by a semicolon.
 
-More precisely, the granularity of the element of `Enabled Parts` and `Disabled Parts` is currently at the file-level, which means now **our tool will recognize the name of each file in `benchmark/benchmark` before benchmarking** and **each element in `Enabled Parts` and `Disable Parts` should be exactly the name of those files**.
-
 `--enable` is used to specify the files that should be included, and by default (`--enable` not specified) all files in the `benchmark/benchmark` are included. `--disable` is used to specify the files that should be excluded, and the default value is an empty string.
+
+More precisely, the granularity of the element of `Enabled Parts` and `Disabled Parts` is currently at the file-level, and supports two levels of files, which means that now **our tool will recognize the name of each file in `benchmark/benchmark` and all the files under `benchmark/benchmark/**` before benchmarking**.
+
+**Each top-level element in `Enabled Parts` and `Disable Parts` should be exactly the name of the file under `benchmark/benchmark`; each second-level element should be the name of the file under the dir that has the same name of top-level file**.
 
 > I don't recommend using `--enable` and `--disable` at the same time. But if you do, `--disable` takes priority over `--enable`.
 > 
@@ -92,10 +94,10 @@ e.g.
 
 ```shell
 > DEPS_LIST="https://github.com/FluxML/NNlib.jl#backports-0.8.21,https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test;Flux,Flux@0.13.12"
-> # Only Flux and NNlib
-> julia --project=benchmark benchmark/runbenchmarks-cli.jl --enable="flux;nnlib" --deps-list=$DEPS_LIST
-> # All benchmarks except Flux and NNlib
-> julia --project=benchmark benchmark/runbenchmarks-cli.jl --disable="flux;nnlib" --deps-list=$DEPS_LIST
+> # Only Flux-MLP and all NNlib
+> julia --project=benchmark benchmark/runbenchmarks-cli.jl --enable="flux:mlp;nnlib" --deps-list=$DEPS_LIST
+> # All benchmarks except Flux, NNlib-gemm and NNlib-activations
+> julia --project=benchmark benchmark/runbenchmarks-cli.jl --disable="flux;nnlib:gemm,activations" --deps-list=$DEPS_LIST
 > # Only Flux
 > julia --project=benchmark benchmark/runbenchmarks-cli.jl --enable="flux;nnlib" --disable="nnlib" --deps-list=$DEPS_LIST
 ```
