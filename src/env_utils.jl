@@ -33,14 +33,9 @@ FLUXML_AVAILABLE_TOP_LEVEL_BENCHMARKS is a vector, each element of it means
 an available benchmark file under BENCHMARK_FILES_PATH.
 """
 const BENCHMARK_FILES_PATH = "$(BENCHMARK_PKG_PATH)/benchmark"
-const FLUXML_AVAILABLE_TOP_LEVEL_BENCHMARKS = filter(
-    !isnothing,
-    map(readdir(BENCHMARK_FILES_PATH)) do file_name
-        if (m = match(r"(.*?).jl$", file_name)) !== nothing
-            string(m.captures[1])
-        end
-    end
-)
+const FLUXML_AVAILABLE_TOP_LEVEL_BENCHMARKS = [
+    "flux", "nnlib"
+]
 
 
 """
