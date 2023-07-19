@@ -1,6 +1,13 @@
 ########## pooling ############
 SUITE["nnlib"]["pooling"] = BenchmarkGroup()
-for rank in (3, 2, 1,), N in (512, 256,), K in (4, 2,), stride in (4, 2, 1,)
+SIZES = [
+    (3, 256, 4, 4), (3, 256, 2, 1),
+    (2, 512, 4, 4), (2, 512, 4, 2), (2, 512, 4, 1), (2, 512, 2, 4),
+    (2, 256, 4, 4), (2, 256, 2, 2), (2, 256, 2, 1),
+    (1, 512, 4, 4), (1, 512, 2, 4), (1, 512, 4, 2),
+    (1, 256, 4, 4), (1, 256, 2, 4), (1, 256, 4, 2),
+]
+for (rank, N, K, stride) in SIZES
     size_suite = BenchmarkGroup()
     SUITE["nnlib"]["pooling"]["$(rank+2)-N($N)-K($K)-stride($stride)"] = size_suite
 
