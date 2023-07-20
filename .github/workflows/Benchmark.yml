@@ -65,8 +65,8 @@ jobs:
     strategy:
       matrix:
         bm: [
-          "nnlib:attention,activations", "nnlib:gemm", "nnlib:conv",
-          "nnlib:pooling,softmax", "nnlib:dropout", "nnlib:upsample",
+          "nnlib(attention,activations,gemm)", "nnlib(conv)",
+          "nnlib(pooling,softmax)", "nnlib(dropout,upsample)",
           "flux"
         ]
     steps:
@@ -101,17 +101,17 @@ jobs:
         id: benchmark
         name: Run benchmark
         run: |
-          julia --project=benchmark benchmark/runbenchmarks-pr.jl --target=$TARGET_URL --baseline=$BASELINE_URL --enable=${{ matrix.bm }}
+          julia --project=benchmark benchmark/runbenchmarks-pr.jl --target=$TARGET_URL --baseline=$BASELINE_URL --enable="${{ matrix.bm }}"
       -
         name: Print report
         run: |
           cat benchmark/report.md
       -
         name: Upload report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: fluxml-benchmark-result-${{ matrix.bm }}
-          path: ｜
+          path: |
             benchmark/result-baseline.json
             benchmark/result-target.json
 
@@ -121,10 +121,10 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       -
         name: Download all reports
         uses: actions/download-artifact@v3
-      - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
       - uses: julia-actions/julia-buildpkg@v1
       -
@@ -133,7 +133,7 @@ jobs:
           julia --project=benchmark benchmark/mergereports-cli.jl
       -
         name: Upload final report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: final-report
           path: benchmark/report.md

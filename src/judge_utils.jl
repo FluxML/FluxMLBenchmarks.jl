@@ -24,13 +24,15 @@ to find all the "result-baseline.json" and "result-target.json".
 
 * base_path: to specify the path artifacts located, "." by default
 """
-function get_result_files(base_path::String = ".")::Tuple{Vector{String}, Vector{String}}
+function get_result_files(base_path::String)::Tuple{Vector{String}, Vector{String}}
     baseline_results = []
     target_results = []
+    @info readdir(base_path)
     all_benchmark_result_dirs = [
         f for f in readdir(base_path) if isdir(f) &&
         startswith(f, BENCHMARK_RESULT_PREFIX)
     ]
+    @info all_benchmark_result_dirs
     for dir in all_benchmark_result_dirs
         result_dir_contents = readdir(dir)
         BASELINE_RESULT_FILE_NAME in result_dir_contents ||
