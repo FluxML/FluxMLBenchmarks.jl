@@ -3,11 +3,11 @@ SUITE["nnlib"]["upsample"] = BenchmarkGroup()
 SUITE["nnlib"]["upsample"]["linear"] = BenchmarkGroup()
 
 SIZES = [
-    (3, 256, 8, true),
-    (3, 128, (1, 2), false),
-    (2, 512, (0.5, 2), false),
-    (2, 256, 4, false),
-    (2, 128, 2, true),
+    (3, 64, 8, true),
+    (3, 32, (1, 2, 1), false),
+    (2, 128, (0.5, 2), false),
+    (2, 64, 4, false),
+    (2, 32, 2, true),
 ]
 for (rank, sz, scale, ac) in SIZES
     et_suite = BenchmarkGroup()
@@ -27,8 +27,9 @@ end
 
 SUITE["nnlib"]["upsample"]["nearest"] = BenchmarkGroup()
 SIZES = [
-    (3, 256), (2, 512), (2, 256),
-    (1, 512), (1, 256),
+    (3, 64), (3, 32),
+    (2, 128), (2, 32),
+    (1, 128), (1, 64),
 ]
 for (rank, N) in SIZES
     et_suite = BenchmarkGroup()
