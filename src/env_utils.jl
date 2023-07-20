@@ -332,7 +332,7 @@ function parse_enabled_benchmarks(
         single_repo_benchmarks = []
         if isempty(segment)
             return single_repo_benchmarks
-        elseif (m = match(r"^(.*?):(.+)$", segment)) !== nothing
+        elseif (m = match(r"^(.*?)\((.+)\)$", segment)) !== nothing
             # e.g. top_level_bg: flux or nnlib
             # e.g. second_level_bgs: activations,gemm
             top_level_bg, second_level_bgs = m.captures[1], m.captures[2]
