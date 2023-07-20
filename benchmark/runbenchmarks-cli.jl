@@ -12,7 +12,8 @@ enable_arg = parsed_args["enable"]
 disable_arg = parsed_args["disable"]
 enabled_benchmarks = parse_enabled_benchmarks(enable_arg, disable_arg)
 
-setup_fluxml_env(baseline_fluxml_deps)
+time_setup_fluxml_env = @elapsed setup_fluxml_env(baseline_fluxml_deps)
+@info "TIME: setup FluxML benchmarking environment (baseline) cost $time_setup_fluxml_env"
 
 using BenchmarkTools
 using PkgBenchmark
@@ -34,7 +35,8 @@ teardown()
 Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 
-setup_fluxml_env(target_fluxml_deps)
+time_setup_fluxml_env = @elapsed setup_fluxml_env(target_fluxml_deps)
+@info "TIME: setup FluxML benchmarking environment (target) cost $time_setup_fluxml_env"
 
 using BenchmarkTools
 using PkgBenchmark
