@@ -217,7 +217,7 @@ function parse_commandline()
             action = :store_arg
         "--retune"
             help = "force re-tuning (ignore existing tuning data)"
-            action = :store_false
+            action = :store_true
     end
     args = parse_args(s)
     !isnothing(args["deps-list"]) && return args

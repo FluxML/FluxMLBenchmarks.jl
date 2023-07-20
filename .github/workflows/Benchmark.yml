@@ -28,20 +28,33 @@ jobs:
           echo "Target repo url: $TARGET_URL"
           echo "Baseline repo url: $BASELINE_URL"
       - uses: actions/checkout@v3
+      - id: restore-cache
+        uses: actions/cache/restore@v3
+        with:
+          path: ~/.julia
+          # FIXME: if branch updated frequently, old cache still exists, leading to old dependencies restored
+          # TODO: fake key, only want to use restore-keys, because now mainly using benchmark/Manifest.toml sha
+          #       to distinguish different commit in PR.
+          key: ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
+          restore-keys: ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
+
+      # cache-matched-key is '' when cache/restore cannot hit cache even used "restore-keys"
       - uses: julia-actions/setup-julia@v1
+        if: ${{ steps.restore-cache.outputs.cache-matched-key == '' }}
       - uses: julia-actions/julia-buildpkg@v1
+        if: ${{ steps.restore-cache.outputs.cache-matched-key == '' }}
       -
         name: Install dependencies
+        if: ${{ steps.restore-cache.outputs.cache-matched-key == '' }}
         run: |
           julia --project=benchmark benchmark/cachesetup-cli.jl  --target=$TARGET_URL --baseline=$BASELINE_URL
       -
-        name: Store cache
-        uses: actions/cache@v3
+        uses: actions/cache/save@v3
+        if: ${{ steps.restore-cache.outputs.cache-matched-key == '' }}
         with:
           path: ~/.julia
           key: ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ hashFiles('benchmark/Manifest.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
+
 
   RunBenchmark:
     needs: [Cache]
@@ -67,6 +80,9 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - run: |
+          git fetch origin benchmark-tuning:benchmark-tuning
+          git fetch origin benchmark-results:benchmark-results
       -
         name: Setup julia
         uses: julia-actions/setup-julia@v1
@@ -99,6 +115,7 @@ jobs:
             benchmark/result-baseline.json
             benchmark/result-target.json
 
+
   MergeReport:
     needs: [RunBenchmark]
     if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -121,6 +138,7 @@ jobs:
           name: final-report
           path: benchmark/report.md
 
+
   Comment:
     needs: [MergeReport]
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.repository != '' && github.event.inputs.pr_id != '' }}
@@ -139,6 +157,7 @@ jobs:
           issue-number: ${{ github.event.inputs.pr_id }}
           token: ${{ secrets.PAT }}
           body-file: report.md
+
 
   DryPrint:
     needs: [MergeReport]
