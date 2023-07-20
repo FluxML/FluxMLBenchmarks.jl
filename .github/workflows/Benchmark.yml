@@ -16,7 +16,35 @@ on:
         description: url of baseline
 
 jobs:
+  Cache:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_URL: ${{ github.event.inputs.target_url || format('{0}#{1}', github.event.pull_request.head.repo.html_url, github.event.pull_request.head.sha) }}
+      BASELINE_URL: ${{ github.event.inputs.baseline_url || format('{0}#{1}', github.event.pull_request.base.repo.html_url, github.event.pull_request.base.sha) }}
+    steps:
+      -
+        name: Print target&baseline repo url
+        run: |
+          echo "Target repo url: $TARGET_URL"
+          echo "Baseline repo url: $BASELINE_URL"
+      - uses: actions/checkout@v3
+      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/julia-buildpkg@v1
+      -
+        name: Install dependencies
+        run: |
+          julia --project=benchmark benchmark/cachesetup-cli.jl  --target=$TARGET_URL --baseline=$BASELINE_URL
+      -
+        name: Store cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.julia
+          key: ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ hashFiles('benchmark/Manifest.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
+
   RunBenchmark:
+    needs: [Cache]
     runs-on: ubuntu-latest
     env:
       TARGET_URL: ${{ github.event.inputs.target_url || format('{0}#{1}', github.event.pull_request.head.repo.html_url, github.event.pull_request.head.sha) }}
@@ -30,6 +58,7 @@ jobs:
         ]
     steps:
       -
+        name: Print target&baseline repo url
         run: |
           echo "Target repo url: $TARGET_URL"
           echo "Baseline repo url: $BASELINE_URL"
@@ -41,6 +70,14 @@ jobs:
       -
         name: Setup julia
         uses: julia-actions/setup-julia@v1
+      -
+        name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.julia
+          key: ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ hashFiles('benchmark/Manifest.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
       -
         name: Build pkg
         uses: julia-actions/julia-buildpkg@v1
