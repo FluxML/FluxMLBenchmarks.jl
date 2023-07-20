@@ -29,19 +29,24 @@ jobs:
           echo "Baseline repo url: $BASELINE_URL"
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
-      - uses: julia-actions/julia-buildpkg@v1
       -
-        name: Install dependencies
-        run: |
-          julia --project=benchmark benchmark/cachesetup-cli.jl  --target=$TARGET_URL --baseline=$BASELINE_URL
-      -
-        name: Store cache
+        id: cache
         uses: actions/cache@v3
         with:
           path: ~/.julia
           key: ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ hashFiles('benchmark/Manifest.toml') }}
           restore-keys: |
             ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
+      -
+        run: |
+          echo ${{ steps.cache.outputs.cache-hit }}
+          echo ${{ steps.cache.outputs.cache-matched-key }}
+          echo ${{ steps.cache.outputs.cache-primary-key }}
+      - uses: julia-actions/julia-buildpkg@v1
+      -
+        name: Install dependencies
+        run: |
+          julia --project=benchmark benchmark/cachesetup-cli.jl  --target=$TARGET_URL --baseline=$BASELINE_URL
 
   RunBenchmark:
     needs: [Cache]

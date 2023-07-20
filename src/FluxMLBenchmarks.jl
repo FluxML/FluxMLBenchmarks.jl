@@ -12,4 +12,7 @@ include("judge_utils.jl")
 export markdown_report, display_markdown_report,
     get_result_files, merge_results
 
+include("tune_utils.jl")
+export get_tuning_json
+
 end

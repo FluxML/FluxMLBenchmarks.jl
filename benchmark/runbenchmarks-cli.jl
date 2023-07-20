@@ -6,12 +6,14 @@ Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 
 parsed_args = parse_commandline()
-deps_list = parsed_args["deps-list"]
-baseline_fluxml_deps, target_fluxml_deps = parse_deps_list(deps_list)
+retune_arg = parsed_args["retune"]
+retune_arg || get_tuning_json()
 enable_arg = parsed_args["enable"]
 disable_arg = parsed_args["disable"]
 enabled_benchmarks = parse_enabled_benchmarks(enable_arg, disable_arg)
 
+deps_list = parsed_args["deps-list"]
+baseline_fluxml_deps, target_fluxml_deps = parse_deps_list(deps_list)
 time_setup_fluxml_env = @elapsed setup_fluxml_env(baseline_fluxml_deps)
 @info "TIME: setup FluxML benchmarking environment (baseline) cost $time_setup_fluxml_env"
 

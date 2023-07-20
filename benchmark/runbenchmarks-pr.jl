@@ -6,7 +6,8 @@ Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 
 parsed_args = parse_commandline()
-
+retune_arg = parsed_args["retune"]
+retune_arg || get_tuning_json()
 enable_arg = parsed_args["enable"]
 disable_arg = parsed_args["disable"]
 enabled_benchmarks = parse_enabled_benchmarks(enable_arg, disable_arg)
