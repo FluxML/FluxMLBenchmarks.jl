@@ -95,9 +95,9 @@ e.g.
 ```shell
 > DEPS_LIST="https://github.com/FluxML/NNlib.jl#backports-0.8.21,https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test;Flux,Flux@0.13.12"
 > # Only Flux-MLP and all NNlib
-> julia --project=benchmark benchmark/runbenchmarks-cli.jl --enable="flux:mlp;nnlib" --deps-list=$DEPS_LIST
+> julia --project=benchmark benchmark/runbenchmarks-cli.jl --enable="flux(mlp);nnlib" --deps-list=$DEPS_LIST
 > # All benchmarks except Flux, NNlib-gemm and NNlib-activations
-> julia --project=benchmark benchmark/runbenchmarks-cli.jl --disable="flux;nnlib:gemm,activations" --deps-list=$DEPS_LIST
+> julia --project=benchmark benchmark/runbenchmarks-cli.jl --disable="flux;nnlib(gemm,activations)" --deps-list=$DEPS_LIST
 > # Only Flux
 > julia --project=benchmark benchmark/runbenchmarks-cli.jl --enable="flux;nnlib" --disable="nnlib" --deps-list=$DEPS_LIST
 ```

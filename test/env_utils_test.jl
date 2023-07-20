@@ -84,11 +84,11 @@
         @test length(eb4) == 9      # nnlib(9)
         @test !get(eb3, "FLUXML_BENCHMARK_FLUX", false)
 
-        enable2 = "flux;nnlib:activations"
+        enable2 = "flux;nnlib(activations)"
         eb5 = parse_enabled_benchmarks(enable2, "")
         @test length(eb5) == 4      # flux(2), nnlib(2)
 
-        enable3 = "flux;nnlib:gemm,conv"
+        enable3 = "flux;nnlib(gemm,conv)"
         eb6 = parse_enabled_benchmarks(enable3, "")
         @test length(eb6) == 5      # flux(2), nnlib(3)
 
