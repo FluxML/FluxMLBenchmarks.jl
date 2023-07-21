@@ -1,4 +1,5 @@
 using BenchmarkCI: printresultmd, CIResult
+using BenchmarkTools
 using PkgBenchmark
 using Markdown
 
@@ -47,18 +48,35 @@ end
 
 
 """
+    merge_benchmarkgroup(a::BenchmarkGroup, b::BenchmarkGroup)::BenchmarkGroup
+
+is used to merge two different BenchmarkGroup.
+"""
+function merge_benchmarkgroup(a::BenchmarkGroup, b::BenchmarkGroup)::BenchmarkGroup
+    out = deepcopy(a)
+    for (key, bg) in b
+        out[key] = haskey(a, key) ?
+            merge_benchmarkgroup(a[key], bg) : bg
+    end
+    return out
+end
+
+
+"""
     merge_results(a::BenchmarkResults, b::BenchmarkResults)::BenchmarkResults
 
 is used to merge two different BenchmarkResults.
-
-Here only assign all the k-v pairs of param `b` to param `a`.
 """
 function merge_results(a::BenchmarkResults, b::BenchmarkResults)::BenchmarkResults
-    out = deepcopy(a)
-    for (key, bg) in b.benchmarkgroup
-        out.benchmarkgroup[key] = bg
-    end
-    return out
+    return BenchmarkResults(
+        a.name,
+        a.commit,
+        merge_benchmarkgroup(a.benchmarkgroup, b.benchmarkgroup),
+        a.date,
+        a.julia_commit,
+        a.vinfo,
+        a.benchmarkconfig
+    )
 end
 
 function merge_results(input::Vector{BenchmarkResults})
