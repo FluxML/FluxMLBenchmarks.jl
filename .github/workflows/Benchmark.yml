@@ -22,21 +22,22 @@ jobs:
       TARGET_URL: ${{ github.event.inputs.target_url || format('{0}#{1}', github.event.pull_request.head.repo.html_url, github.event.pull_request.head.sha) }}
       BASELINE_URL: ${{ github.event.inputs.baseline_url || format('{0}#{1}', github.event.pull_request.base.repo.html_url, github.event.pull_request.base.sha) }}
     steps:
+      - uses: actions/checkout@v3
       -
         name: Print target&baseline repo url
         run: |
           echo "Target repo url: $TARGET_URL"
           echo "Baseline repo url: $BASELINE_URL"
-      - uses: actions/checkout@v3
-      - id: restore-cache
+      -
+        name: Get current time
+        run: echo "TIME=$(date +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+      -
+        id: restore-cache
         uses: actions/cache/restore@v3
         with:
           path: ~/.julia
-          # FIXME: if branch updated frequently, old cache still exists, leading to old dependencies restored
-          # TODO: fake key, only want to use restore-keys, because now mainly using benchmark/Manifest.toml sha
-          #       to distinguish different commit in PR.
-          key: ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
-          restore-keys: ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
+          key: bm-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ env.TIME }}
+          restore-keys: bm-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ env.TIME }}
 
       # cache-matched-key is '' when cache/restore cannot hit cache even used "restore-keys"
       - uses: julia-actions/setup-julia@v1
@@ -53,7 +54,7 @@ jobs:
         if: ${{ steps.restore-cache.outputs.cache-matched-key == '' }}
         with:
           path: ~/.julia
-          key: ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ hashFiles('benchmark/Manifest.toml') }}
+          key: bm-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ env.TIME }}
 
 
   RunBenchmark:
@@ -91,9 +92,12 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.julia
-          key: ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ hashFiles('benchmark/Manifest.toml') }}
+          # This "key" is required, but the time of this job is definitely different from "Cache" job.
+          # Therefore cache cannot be hit. So this is a fake key.
+          key: bm-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
           restore-keys: |
-            ${{ runner.os }}-bm-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
+            bm-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
+            bm-${{ github.run_id }}-${{ github.run_attempt }}-
       -
         name: Build pkg
         uses: julia-actions/julia-buildpkg@v1
