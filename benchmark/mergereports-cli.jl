@@ -4,7 +4,7 @@ using FluxMLBenchmarks
 FluxMLBenchmarks.install_benchmark_basic_deps()
 
 using PkgBenchmark
-baseline_results, target_results = get_result_files(pwd())
+baseline_results, target_results = get_result_files_from_artifacts(pwd())
 baseline_benchmarkresults = merge_results(baseline_results)
 target_benchmarkresults = merge_results(target_results)
 
