@@ -16,13 +16,63 @@ on:
         description: url of baseline
 
 jobs:
-  RunBenchmark:
+  Cache:
     runs-on: ubuntu-latest
     env:
       TARGET_URL: ${{ github.event.inputs.target_url || format('{0}#{1}', github.event.pull_request.head.repo.html_url, github.event.pull_request.head.sha) }}
       BASELINE_URL: ${{ github.event.inputs.baseline_url || format('{0}#{1}', github.event.pull_request.base.repo.html_url, github.event.pull_request.base.sha) }}
     steps:
+      - uses: actions/checkout@v3
       -
+        name: Print target&baseline repo url
+        run: |
+          echo "Target repo url: $TARGET_URL"
+          echo "Baseline repo url: $BASELINE_URL"
+      -
+        name: Get current time
+        run: echo "TIME=$(date +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+      -
+        id: restore-cache
+        uses: actions/cache/restore@v3
+        with:
+          path: ~/.julia
+          key: bm-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ env.TIME }}
+          restore-keys: bm-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ env.TIME }}
+
+      # cache-matched-key is '' when cache/restore cannot hit cache even used "restore-keys"
+      - uses: julia-actions/setup-julia@v1
+        if: ${{ steps.restore-cache.outputs.cache-matched-key == '' }}
+      - uses: julia-actions/julia-buildpkg@v1
+        if: ${{ steps.restore-cache.outputs.cache-matched-key == '' }}
+      -
+        name: Install dependencies
+        if: ${{ steps.restore-cache.outputs.cache-matched-key == '' }}
+        run: |
+          julia --project=benchmark benchmark/cachesetup-cli.jl  --target=$TARGET_URL --baseline=$BASELINE_URL
+      -
+        uses: actions/cache/save@v3
+        if: ${{ steps.restore-cache.outputs.cache-matched-key == '' }}
+        with:
+          path: ~/.julia
+          key: bm-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-${{ env.TIME }}
+
+
+  RunBenchmark:
+    needs: [Cache]
+    runs-on: ubuntu-latest
+    env:
+      TARGET_URL: ${{ github.event.inputs.target_url || format('{0}#{1}', github.event.pull_request.head.repo.html_url, github.event.pull_request.head.sha) }}
+      BASELINE_URL: ${{ github.event.inputs.baseline_url || format('{0}#{1}', github.event.pull_request.base.repo.html_url, github.event.pull_request.base.sha) }}
+    strategy:
+      matrix:
+        bm: [
+          "nnlib(attention,activations,gemm)", "nnlib(conv)",
+          "nnlib(pooling,softmax)", "nnlib(dropout,upsample)",
+          "flux"
+        ]
+    steps:
+      -
+        name: Print target&baseline repo url
         run: |
           echo "Target repo url: $TARGET_URL"
           echo "Baseline repo url: $BASELINE_URL"
@@ -31,12 +81,23 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Setup main branch locally without switching current branch
-        if: ${{ github.event_name == 'pull_request' }}
-        run: git fetch origin main:main
+      - run: |
+          git fetch origin benchmark-tuning:benchmark-tuning
+          git fetch origin benchmark-results:benchmark-results
       -
         name: Setup julia
         uses: julia-actions/setup-julia@v1
+      -
+        name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.julia
+          # This "key" is required, but the time of this job is definitely different from "Cache" job.
+          # Therefore cache cannot be hit. So this is a fake key.
+          key: bm-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
+          restore-keys: |
+            bm-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.TARGET_URL }}-${{ env.BASELINE_URL }}-
+            bm-${{ github.run_id }}-${{ github.run_attempt }}-
       -
         name: Build pkg
         uses: julia-actions/julia-buildpkg@v1
@@ -44,19 +105,46 @@ jobs:
         id: benchmark
         name: Run benchmark
         run: |
-          julia --project=benchmark benchmark/runbenchmarks-pr.jl --target=$TARGET_URL --baseline=$BASELINE_URL
+          julia --project=benchmark benchmark/runbenchmarks-pr.jl --target=$TARGET_URL --baseline=$BASELINE_URL --enable="${{ matrix.bm }}"
       -
         name: Print report
         run: |
           cat benchmark/report.md
       -
         name: Upload report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: report.md
-          path: benchmark/report.md
-  Comment:
+          name: fluxml-benchmark-result-${{ matrix.bm }}
+          path: |
+            benchmark/result-baseline.json
+            benchmark/result-target.json
+
+
+  MergeReport:
     needs: [RunBenchmark]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      -
+        name: Download all reports
+        uses: actions/download-artifact@v3
+      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/julia-buildpkg@v1
+      -
+        name: Merge reports
+        run: |
+          julia --project=benchmark benchmark/mergereports-cli.jl
+      -
+        name: Upload final report
+        uses: actions/upload-artifact@v3
+        with:
+          name: final-report
+          path: benchmark/report.md
+
+
+  Comment:
+    needs: [MergeReport]
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.repository != '' && github.event.inputs.pr_id != '' }}
     runs-on: ubuntu-latest
     steps:
@@ -64,7 +152,7 @@ jobs:
         name: Download report
         uses: actions/download-artifact@v3
         with:
-          name: report.md
+          name: final-report
       -
         name: Comment
         uses: peter-evans/create-or-update-comment@v2
@@ -73,3 +161,15 @@ jobs:
           issue-number: ${{ github.event.inputs.pr_id }}
           token: ${{ secrets.PAT }}
           body-file: report.md
+
+
+  DryPrint:
+    needs: [MergeReport]
+    if: ${{ github.event.inputs.repository == '' || github.event.inputs.pr_id == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: final-report
+      - run: |
+          cat report.md

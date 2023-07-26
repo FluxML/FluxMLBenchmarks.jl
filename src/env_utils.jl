@@ -170,7 +170,7 @@ end
 is used to install dependencies in benchmark part rather than FluxMLBenchmarks
 """
 function install_benchmark_basic_deps()
-    println("begin to install basic deps")
+    @info "begin to install basic deps"
     for dep in BENCHMARK_BASIC_DEPS
         Pkg.add(dep)
     end
@@ -217,7 +217,7 @@ function parse_commandline()
             action = :store_arg
         "--retune"
             help = "force re-tuning (ignore existing tuning data)"
-            action = :store_false
+            action = :store_true
     end
     args = parse_args(s)
     !isnothing(args["deps-list"]) && return args
@@ -262,10 +262,10 @@ end
 is used to activate environment, change dir and install dependencies.
 """
 function setup(deps::Vector{PackageSpec})
-    println("begin to setup benchmark environment")
+    @info "begin to setup benchmark environment"
     Pkg.activate(BENCHMARK_PKG_PATH)
     cd(BENCHMARK_PKG_PATH)
-    println("pwd is: $(pwd())")
+    @info "pwd is: $(pwd())"
 
     for dep in deps
         Pkg.add(dep)
@@ -300,10 +300,10 @@ end
 is used to remove all the package installed, change dir and reactivate base.
 """
 function teardown()
-    println("teardown benchmark environment")
+    @info "teardown benchmark environment"
     Pkg.rm(all_pkgs = true)
     pwd = ENV["PWD"] # PWD in ENV means the original path where run the code
-    println("pwd: $pwd")
+    @info "pwd: $pwd"
     cd(pwd)
 end
 

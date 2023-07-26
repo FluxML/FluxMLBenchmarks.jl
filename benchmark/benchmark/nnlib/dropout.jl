@@ -1,6 +1,6 @@
 ########## dropout ############
 SUITE["nnlib"]["dropout"] = BenchmarkGroup()
-for rank in (1, 2, 3,), N in (128, 512, 1024,)
+for rank in (3, 2, 1,), N in (512, 256, 128,)
     size_suite = BenchmarkGroup()
     SUITE["nnlib"]["dropout"]["$(rank+2)-N($N)"] = size_suite
 

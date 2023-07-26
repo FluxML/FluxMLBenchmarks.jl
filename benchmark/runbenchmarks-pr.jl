@@ -6,20 +6,19 @@ Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 
 parsed_args = parse_commandline()
-
+retune_arg = parsed_args["retune"]
+retune_arg || get_tuning_json()
 enable_arg = parsed_args["enable"]
 disable_arg = parsed_args["disable"]
 enabled_benchmarks = parse_enabled_benchmarks(enable_arg, disable_arg)
 
 baseline_url = parsed_args["baseline"]
-setup_fluxml_env([baseline_url])
+time_setup_fluxml_env = @elapsed setup_fluxml_env([baseline_url])
+@info "TIME: setup FluxML benchmarking environment (baseline) cost $time_setup_fluxml_env"
 
 using BenchmarkTools
-BenchmarkTools.DEFAULT_PARAMETERS.samples = 20
-BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2.5
-
 using PkgBenchmark
-group_baseline = benchmarkpkg(
+time_run_benchmarks = @elapsed begin group_baseline = benchmarkpkg(
     dirname(@__DIR__),
     BenchmarkConfig(
         env = merge(
@@ -28,7 +27,8 @@ group_baseline = benchmarkpkg(
         )
     ),
     resultfile = joinpath(@__DIR__, "result-baseline.json")
-)
+) end
+@info "TIME: run benchmarks (baseline) cost $time_run_benchmarks"
 
 teardown()
 
@@ -38,14 +38,12 @@ Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 
 target_url = parsed_args["target"]
-setup_fluxml_env([target_url])
+time_setup_fluxml_env = @elapsed setup_fluxml_env([target_url])
+@info "TIME: setup FluxML benchmarking environment (target) cost $time_setup_fluxml_env"
 
 using BenchmarkTools
-BenchmarkTools.DEFAULT_PARAMETERS.samples = 20
-BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2.5
-
 using PkgBenchmark
-group_target = benchmarkpkg(
+time_run_benchmarks = @elapsed begin group_target = benchmarkpkg(
     dirname(@__DIR__),
     BenchmarkConfig(
         env = merge(
@@ -54,7 +52,8 @@ group_target = benchmarkpkg(
         )
     ),
     resultfile = joinpath(@__DIR__, "result-target.json"),
-)
+) end
+@info "TIME: run benchmarks (target) cost $time_run_benchmarks"
 
 teardown()
 
