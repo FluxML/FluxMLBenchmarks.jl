@@ -53,7 +53,7 @@ For specification, `Dependencies List` is a single string that simulates an arra
 e.g.
 
 ```shell
-> DEPS_LIST="https://github.com/FluxML/NNlib.jl#backports-0.8.21,https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test;Flux,Flux@0.13.12"
+> DEPS_LIST="https://github.com/FluxML/NNlib.jl#backports-0.8.21,Flux;https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test,Flux@0.13.12"
 > julia --project=benchmark benchmark/runbenchmarks-cli.jl --deps-list=$DEPS_LIST
 ```
 
@@ -93,7 +93,7 @@ More precisely, the granularity of the element of `Enabled Parts` and `Disabled 
 e.g.
 
 ```shell
-> DEPS_LIST="https://github.com/FluxML/NNlib.jl#backports-0.8.21,https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test;Flux,Flux@0.13.12"
+> DEPS_LIST="https://github.com/FluxML/NNlib.jl#backports-0.8.21,Flux;https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test,Flux@0.13.12"
 > # Only Flux-MLP and all NNlib
 > julia --project=benchmark benchmark/runbenchmarks-cli.jl --enable="flux(mlp);nnlib" --deps-list=$DEPS_LIST
 > # All benchmarks except Flux, NNlib-gemm and NNlib-activations

@@ -40,7 +40,7 @@
     end
 
     @testset "parse deps list" begin
-        deps_list = "NNlib,https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test;Flux,Flux@0.13.12"
+        deps_list = "NNlib,Flux;https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test,Flux@0.13.12"
         baseline_deps, target_deps = parse_deps_list(deps_list)
         @test (length(baseline_deps) == 2 &&
                baseline_deps[1].name == "NNlib" &&

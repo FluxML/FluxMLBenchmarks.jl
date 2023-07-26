@@ -231,27 +231,24 @@ end
 """
     parse_deps_list(deps_list::String)::Tuple{Vector{Dependency}, Vector{Dependency}}
 
-is used to parse command argument, "deps-list", to 2 sets of dependencies,
-which means parse_deps_list can support difference of multiple dependencies.
-Each element separated by a semicolon. Each element consists of two parts:
-the first part is baseline dependency, and the second part is target.
+is used to parse command argument, "deps-list" represents 2 sets of dependencies.
+Each element separated by a semicolon. Each element consists of any number of deps.
 Now, deps_list only supports FluxML packages.
 
 e.g. deps_list can be
-    "NNlib,https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test;Flux,Flux#0.13.12"
+    "NNlib,Flux;https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test,Flux#0.13.12"
 """
 function parse_deps_list(deps_list::String)::Tuple{Vector{Dependency}, Vector{Dependency}}
-    dep_pairs = filter(
-        dep_pair_vec -> length(dep_pair_vec) == 2,
-        map(
-            dep_pair -> split(dep_pair, ","),
-            split(deps_list, ";")))
+    tmp = split(deps_list, ";")
+    length(tmp) != 2 && throw(error(
+        "Must provide 2 sets of dependencies in 'deps-list' argument"))
+
     baseline_deps = map(
-        baseline_dep -> Dependency(string(baseline_dep)),
-        map(x -> x[1], dep_pairs))
+        dep -> Dependency(string(dep)),
+        split(tmp[1], ","))
     target_deps = map(
-        target_dep -> Dependency(string(target_dep)),
-        map(x -> x[2], dep_pairs))
+        dep -> Dependency(string(dep)),
+        split(tmp[2], ","))
     return (baseline_deps, target_deps)
 end
 
