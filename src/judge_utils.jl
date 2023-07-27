@@ -40,8 +40,22 @@ in the following cases:
 2. exists a dependency with revision but it's a branch name
 """
 function suitable_to_use_result_cache(single_deps_list::String)
+    deps = map(dep -> Dependency(dep), map(string, split(single_deps_list, ",")))
+    for dep in deps
+        # without version or revision
+        isnothing(dep.version) &&
+        isnothing(dep.rev) &&
+            return false
 
+        # require: length(commit_id) >= 6
+        if !isnothing(dep.rev)
+            m = match(r"^[0-9a-fA-F]{6,}$", dep.rev)
+            isnothing(m) && return false
+        end
+    end
+    return true
 end
+
 
 """
     get_result_files_from_artifacts(base_path::String)::Tuple{Vector{String}, Vector{String}}

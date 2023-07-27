@@ -10,7 +10,7 @@ export Dependency, get_name, init_dependencies,
 
 include("judge_utils.jl")
 export markdown_report, display_markdown_report,
-    get_result_files_from_artifacts, merge_results
+    get_result_files_from_artifacts, merge_results, suitable_to_use_result_cache
 
 include("tune_utils.jl")
 export get_tuning_json
