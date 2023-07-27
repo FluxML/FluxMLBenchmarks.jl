@@ -3,8 +3,11 @@ using BenchmarkTools
 using PkgBenchmark
 using Markdown
 using SHA
+using LibGit2
 
 const RESULTS_BRANCH = "benchmark-results"
+const BASELINE_RESULT_FILENAME = "benchmark/result-baseline.json"
+const TARGET_RESULT_FILENAME = "benchmark/result-target.json"
 
 const BENCHMARK_RESULT_PREFIX = "fluxml-benchmark-result-"
 const BASELINE_RESULT_FILE_NAME = "result-baseline.json"
@@ -26,7 +29,7 @@ function gen_result_filename(single_deps_list::String)::String
     # keep deps in sort, in case impact of different sequence.
     sorted_deps = reduce((a, b) -> "$a,$b",
         sort(map(string, split(single_deps_list, ","))))
-    return bytes2hex(sha256(sorted_deps))
+    return "$(bytes2hex(sha256(sorted_deps))).json"
 end
 
 
@@ -55,6 +58,110 @@ function suitable_to_use_result_cache(single_deps_list::String)
     end
     return true
 end
+
+
+"""
+    get_result_file_from_branch(single_deps_list::String)s
+
+is used to checkout corresponding result file from benchmark-results branch.
+If possible, the result will help to skip benchmarks running.
+
+* single_deps_list: target / baseline command argument
+* checkout_filename: whose name is a filename, and the content of this file is
+the content of a file checked out by git. It can be "benchmark/result-baseline.json"
+
+TODO: badly-designed in semantic, due to the usage of `gen_result_filename``
+"""
+function get_result_file_from_branch(single_deps_list::String, checkout_filename::String)
+    result_filename = gen_result_filename(single_deps_list)
+    cmd = pipeline(`git show $RESULTS_BRANCH:$result_filename`
+                    ; stdout=checkout_filename)
+    try
+        @info "try to checkout result file ($result_filename) in branch $RESULTS_BRANCH."
+        run(cmd)
+        return
+    catch
+        @warn "$RESULTS_BRANCH:$result_filename not existed"
+        isfile(checkout_filename) && rm(checkout_filename)
+        rethrow()
+    end
+end
+
+
+"""
+    get_benchmarkresults_from_branch(single_deps_list::String)::BenchmarkResults
+
+is used to get BenchmarkResults from deps-list.
+"""
+function get_benchmarkresults_from_branch(single_deps_list::String)::Union[Nothing,BenchmarkResults]
+    try
+        get_result_file_from_branch(single_deps_list, "tmp.json")
+    catch
+        @warn "get_result_file_from_branch failed to get result file with $single_deps_list."
+        return
+    end
+    return PkgBenchmark.readresults("tmp.json")
+end
+
+
+"""
+    push_result(result_file_path::String)
+
+is used to push the result file to remote branch.
+
+* result_file_path: the file path of result file.
+
+TODO: badly-designed in semantic, due to the usage of `gen_result_filename`
+"""
+function push_result(single_deps_list::String, result_file_path::String)
+    origin_remote = LibGit2.lookup_remote(REPO, "origin")
+    if isnothing(origin_remote)
+        @warn "remote 'origin' is not existed in .git"
+        return
+    end
+
+    origin_remote_url = LibGit2.url(origin_remote)
+    br_repo = try
+        LibGit2.clone(origin_remote_url, "../benchmark-result"; branch = RESULTS_BRANCH)
+    catch
+        @warn "couldn't clone repo $origin_remote_url (branch: $RESULTS_BRANCH)"
+        return
+    end
+
+    mv(result_file_path, joinpath(
+        LibGit2.path(br_repo),
+        gen_result_filename(single_deps_list)))
+    br_origin_remote = LibGit2.lookup_remote(br_repo, "origin")
+    if isnothing(br_origin_remote)
+        @warn "remote 'origin' is not existed in .git (branch: $RESULTS_BRANCH)"
+        return
+    end
+
+    LibGit2.add_push!(br_repo, br_origin_remote, "refs/heads/$RESULTS_BRANCH")
+end
+
+
+"""
+    markdown_report(judgement::BenchmarkJudgement)
+
+Return markdown content (String) by the result of BenchmarkTools.judge.
+"""
+function markdown_report(judgement::BenchmarkJudgement)
+    md = sprint(printresultmd, CIResult(judgement = judgement))
+    md = replace(md, ":x:" => "❌")
+    md = replace(md, ":white_check_mark:" => "✅")
+    return md
+end
+
+
+"""
+    display_markdown_report(report_md)
+
+Display the content of the report after parsed by Markdown.parse.
+
+* report_md: the result of [`markdown_report`](@ref)
+"""
+display_markdown_report(report_md) = display(Markdown.parse(report_md))
 
 
 """
@@ -153,26 +260,3 @@ function merge_results(input_result_files::Vector{String})::BenchmarkResults
     isempty(input_result_files) && error("When trying to merge BenchmarkResults, receive 0 results")
     return reduce(merge_results, input_result_files)
 end
-
-
-"""
-    markdown_report(judgement::BenchmarkJudgement)
-
-Return markdown content (String) by the result of BenchmarkTools.judge.
-"""
-function markdown_report(judgement::BenchmarkJudgement)
-    md = sprint(printresultmd, CIResult(judgement = judgement))
-    md = replace(md, ":x:" => "❌")
-    md = replace(md, ":white_check_mark:" => "✅")
-    return md
-end
-
-
-"""
-    display_markdown_report(report_md)
-
-Display the content of the report after parsed by Markdown.parse.
-
-* report_md: the result of [`markdown_report`](@ref)
-"""
-display_markdown_report(report_md) = display(Markdown.parse(report_md))

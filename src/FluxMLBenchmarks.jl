@@ -1,5 +1,8 @@
 module FluxMLBenchmarks
 
+using LibGit2
+const REPO =  LibGit2.GitRepo(".git")
+
 # Write your package code here.
 include("env_utils.jl")
 export Dependency, get_name, init_dependencies,
@@ -10,7 +13,9 @@ export Dependency, get_name, init_dependencies,
 
 include("judge_utils.jl")
 export markdown_report, display_markdown_report,
-    get_result_files_from_artifacts, merge_results, suitable_to_use_result_cache
+    get_result_files_from_artifacts, merge_results,
+    suitable_to_use_result_cache, gen_result_filename,
+    get_result_file_from_branch, push_result, get_benchmarkresults_from_branch
 
 include("tune_utils.jl")
 export get_tuning_json
