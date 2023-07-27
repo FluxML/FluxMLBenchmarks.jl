@@ -1,8 +1,5 @@
-using LibGit2
-
 const TUNE_FILE = "benchmark/tune.json"
 const TUNE_BRANCH = "benchmark-tuning"
-const REPO =  LibGit2.GitRepo(".git")
 
 """
     get_tuning_json()
