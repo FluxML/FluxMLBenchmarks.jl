@@ -1,8 +1,5 @@
 module FluxMLBenchmarks
 
-using LibGit2
-const REPO =  LibGit2.GitRepo(".git")
-
 # Write your package code here.
 include("env_utils.jl")
 export Dependency, get_name, init_dependencies,

@@ -218,8 +218,19 @@ function parse_commandline()
         "--retune"
             help = "force re-tuning (ignore existing tuning data)"
             action = :store_true
+        "--fetch-result"
+            help = "skip fetching result.json of baseline from remote"
+            action = :store_true
+        "--push-result"
+            help = "skip pushing result.json of target to remote"
+            action = :store_true
+        "--push-password"
+            help = "used to authenticate when pushing"
+            action = :store_arg
     end
     args = parse_args(s)
+    !isnothing(args["push-result"]) && isnothing(args["push-password"]) &&
+        throw(error("Must provide 'push-password' if you want to 'push-result'"))
     !isnothing(args["deps-list"]) && return args
     !isnothing(args["target"]) && !isnothing(args["baseline"]) &&
         return args
@@ -242,7 +253,7 @@ parse_deps(deps) = map(dep -> Dependency(string(dep)), split(deps, ","))
 
 
 """
-    parse_deps_list(deps_list::String)::Tuple
+    parse_deps_list(deps_list::String)::Union{Vector{Dependency}, Tuple}
 
 is used to parse command argument, "deps-list" represents multiple sets of dependencies.
 Each element separated by a semicolon. Each element consists of any number of deps.
@@ -250,10 +261,18 @@ Now, deps_list only supports FluxML packages.
 
 e.g. deps_list can be
     "NNlib,Flux;https://github.com/skyleaworlder/NNlib.jl#dummy-benchmark-test,Flux#0.13.12"
+
+return type:
+* if deps_list only includes single deps set, return `Vector{Dependency}`
+* if deps_list includes multiple sets, return `Tuple{Vector{Dependency}}`
 """
-function parse_deps_list(deps_list::String)::Tuple
+function parse_deps_list(deps_list::String)::Union{Vector{Dependency}, Tuple}
     parsed_deps_list = [parse_deps(deps) for deps in split(deps_list, ";")]
-    return Tuple(parsed_deps_list)
+    return if length(parsed_deps_list) == 1
+        parsed_deps_list[1]
+    else
+        Tuple(parsed_deps_list)
+    end
 end
 
 

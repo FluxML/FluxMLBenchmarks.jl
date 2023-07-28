@@ -89,15 +89,15 @@ end
 
 
 """
-    get_benchmarkresults_from_branch(single_deps_list::String)::BenchmarkResults
+    get_benchmarkresults_from_branch(single_deps_list::String)::Union{Nothing,BenchmarkResults}
 
 is used to get BenchmarkResults from deps-list.
 """
-function get_benchmarkresults_from_branch(single_deps_list::String)::Union[Nothing,BenchmarkResults]
+function get_benchmarkresults_from_branch(single_deps_list::String)::Union{Nothing,BenchmarkResults}
     try
         get_result_file_from_branch(single_deps_list, "tmp.json")
     catch
-        @warn "get_result_file_from_branch failed to get result file with $single_deps_list."
+        @warn "RESULT: get_result_file_from_branch failed to get result file with $single_deps_list."
         return
     end
     return PkgBenchmark.readresults("tmp.json")
@@ -112,8 +112,14 @@ is used to push the result file to remote branch.
 * result_file_path: the file path of result file.
 
 TODO: badly-designed in semantic, due to the usage of `gen_result_filename`
+TODO: need better way to process git_push_username and git_push_password
 """
-function push_result(single_deps_list::String, result_file_path::String)
+function push_result(single_deps_list::String, result_file_path::String;
+                     git_push_username::String = "skyleaworlder",
+                     git_push_email::String = "skyleaworlder@outlook.com",
+                     git_push_password::String = "fake_password")
+    # FIXME: a little bit hacked
+    REPO = LibGit2.GitRepo(joinpath(@__DIR__, "..", ".git"))
     origin_remote = LibGit2.lookup_remote(REPO, "origin")
     if isnothing(origin_remote)
         @warn "remote 'origin' is not existed in .git"
@@ -123,21 +129,35 @@ function push_result(single_deps_list::String, result_file_path::String)
     origin_remote_url = LibGit2.url(origin_remote)
     br_repo = try
         LibGit2.clone(origin_remote_url, "../benchmark-result"; branch = RESULTS_BRANCH)
-    catch
+    catch e
+        @warn "ERROR: $e"
         @warn "couldn't clone repo $origin_remote_url (branch: $RESULTS_BRANCH)"
         return
     end
 
-    mv(result_file_path, joinpath(
-        LibGit2.path(br_repo),
-        gen_result_filename(single_deps_list)))
+    result_file_path_in_br_repo = joinpath(
+        LibGit2.path(br_repo), gen_result_filename(single_deps_list))
+    mv(result_file_path, result_file_path_in_br_repo)
     br_origin_remote = LibGit2.lookup_remote(br_repo, "origin")
     if isnothing(br_origin_remote)
         @warn "remote 'origin' is not existed in .git (branch: $RESULTS_BRANCH)"
         return
     end
 
-    LibGit2.add_push!(br_repo, br_origin_remote, "refs/heads/$RESULTS_BRANCH")
+    LibGit2.add!(br_repo, result_file_path_in_br_repo)
+    # TODO: use myself now, gonna change to bot account maybe
+    sig = try
+        LibGit2.Signature(br_repo)
+    catch
+        LibGit2.Signature(
+            git_push_username, git_push_email,
+            Int64(round(time())), Int32(0))
+    end
+    LibGit2.commit(br_repo, "Upload results of $single_deps_list"
+                 ; author = sig, committer = sig)
+
+    creds = LibGit2.UserPasswordCredential(sig.name, git_push_password)
+    LibGit2.push(br_repo; refspecs = "refs/heads/$RESULTS_BRANCH", credentials = creds)
 end
 
 
