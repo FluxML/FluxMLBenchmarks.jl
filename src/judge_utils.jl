@@ -132,6 +132,7 @@ function push_result(single_deps_list::String, result_file_path::String;
     catch e
         @warn "ERROR: $e"
         @warn "couldn't clone repo $origin_remote_url (branch: $RESULTS_BRANCH)"
+        isdirpath("../benchmark-result") && rm("../benchmark-result")
         return
     end
 
@@ -144,20 +145,12 @@ function push_result(single_deps_list::String, result_file_path::String;
         return
     end
 
-    LibGit2.add!(br_repo, result_file_path_in_br_repo)
-    # TODO: use myself now, gonna change to bot account maybe
-    sig = try
-        LibGit2.Signature(br_repo)
-    catch
-        LibGit2.Signature(
-            git_push_username, git_push_email,
-            Int64(round(time())), Int32(0))
-    end
-    LibGit2.commit(br_repo, "Upload results of $single_deps_list"
-                 ; author = sig, committer = sig)
-
-    creds = LibGit2.UserPasswordCredential(sig.name, git_push_password)
-    LibGit2.push(br_repo; refspecs = "refs/heads/$RESULTS_BRANCH", credentials = creds)
+    # TODO: I don't know why, but LibGit2.add! failed to add result.json
+    run(`git config --global user.name $git_push_username`)
+    run(`git config --global user.email $git_push_email`)
+    run(`git -C $(LibGit2.path(br_repo)) add $result_file_path_in_br_repo`)
+    run(`git -C $(LibGit2.path(br_repo)) commit -m "Upload results of $single_deps_list"`)
+    run(`git -C $(LibGit2.path(br_repo)) push https://$git_push_username:$git_push_password@github.com/FluxML/FluxMLBenchmarks.jl`)
 end
 
 

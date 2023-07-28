@@ -6,27 +6,36 @@ Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 
 parsed_args = parse_commandline()
-retune_arg = parsed_args["retune"]
-retune_arg || get_tuning_json()
-enable_arg = parsed_args["enable"]
-disable_arg = parsed_args["disable"]
+parsed_args["retune"] || get_tuning_json()
+enable_arg, disable_arg = parsed_args["enable"], parsed_args["disable"]
 enabled_benchmarks = parse_enabled_benchmarks(enable_arg, disable_arg)
 
 baseline_url = parsed_args["baseline"]
+baseline_deps = parse_deps_list(baseline_url)
+group_baseline = nothing # just define group_baseline
 try
-    !suitable_to_use_result_cache(baseline_url) && throw(
-        "not suitable_to_use_result_cache, run benchmarks")
+    if !parsed_args["fetch-result"]
+        @info "RESULT: skip fetching result.json from remote"
+        throw("")
+    end
 
-    group_baseline = get_benchmarkresults_from_branch(baseline_url)
-    isnothing(group_baseline) && throw(
-        "cannot get result file, run benchmarks")
+    if !suitable_to_use_result_cache(baseline_url)
+        @info "RESULT: not suitable_to_use_result_cache, run benchmarks"
+        throw("")
+    end
+
+    global group_baseline = get_benchmarkresults_from_branch(baseline_url)
+    if isnothing(group_baseline)
+        @warn "RESULT: cannot get result file, run benchmarks"
+        throw("")
+    end
 catch
-    time_setup_fluxml_env = @elapsed setup_fluxml_env([baseline_url])
+    time_setup_fluxml_env = @elapsed setup_fluxml_env(baseline_deps)
     @info "TIME: setup FluxML benchmarking environment (baseline) cost $time_setup_fluxml_env"
 
     using BenchmarkTools
     using PkgBenchmark
-    time_run_benchmarks = @elapsed begin group_baseline = benchmarkpkg(
+    time_run_benchmarks = @elapsed begin global group_baseline = benchmarkpkg(
         dirname(@__DIR__),
         BenchmarkConfig(
             env = merge(
@@ -47,7 +56,8 @@ Pkg.develop(PackageSpec(path = ENV["PWD"]))
 using FluxMLBenchmarks
 
 target_url = parsed_args["target"]
-time_setup_fluxml_env = @elapsed setup_fluxml_env([target_url])
+target_deps = parse_deps_list(target_url)
+time_setup_fluxml_env = @elapsed setup_fluxml_env(target_deps)
 @info "TIME: setup FluxML benchmarking environment (target) cost $time_setup_fluxml_env"
 
 using BenchmarkTools
@@ -66,8 +76,10 @@ time_run_benchmarks = @elapsed begin group_target = benchmarkpkg(
 
 teardown()
 
-if suitable_to_use_result_cache(target_url)
-    push_result(target_url, joinpath(@__DIR__, "result-target.json"))
+if parsed_args["push-result"] && suitable_to_use_result_cache(target_url)
+    @info "RESULT: $target_url is suitable to push its result to remote"
+    push_result(target_url, joinpath(@__DIR__, "result-target.json")
+              ; git_push_password = parsed_args["push-password"])
 end
 
 ###########################################################################
