@@ -76,12 +76,6 @@ time_run_benchmarks = @elapsed begin group_target = benchmarkpkg(
 
 teardown()
 
-if parsed_args["push-result"] && suitable_to_use_result_cache(target_url)
-    @info "RESULT: $target_url is suitable to push its result to remote"
-    push_result(target_url, joinpath(@__DIR__, "result-target.json")
-              ; git_push_password = parsed_args["push-password"])
-end
-
 ###########################################################################
 
 judgement = judge(group_target, group_baseline)
