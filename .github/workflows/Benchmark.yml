@@ -163,12 +163,20 @@ jobs:
         with:
           name: final-report
       -
+        name: Get app token
+        id: get-app-token
+        uses: tibdex/github-app-token@v1
+        with: 
+          app_id: ${{ secrets.BENCH_APP_ID }}
+          installation_id: ${{ secrets.BENCH_INSTALL_ID }}
+          private_key: ${{ secrets.BENCH_PRIVATE_KEY }}
+      -
         name: Comment
         uses: peter-evans/create-or-update-comment@v2
         with:
           repository: ${{ github.event.inputs.repository }}
           issue-number: ${{ github.event.inputs.pr_id }}
-          token: ${{ secrets.PAT }}
+          token: ${{ steps.get-app-token.outputs.token }}
           body-file: report.md
 
 
