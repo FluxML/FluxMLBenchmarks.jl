@@ -224,6 +224,12 @@ function parse_commandline()
         "--push-result"
             help = "skip pushing result.json of target to remote"
             action = :store_true
+        "--push-username"
+            help = "used to authenticate when pushing"
+            action = :store_arg
+        "--push-useremail"
+            help = "used to authenticate when pushing"
+            action = :store_arg
         "--push-password"
             help = "used to authenticate when pushing"
             action = :store_arg
