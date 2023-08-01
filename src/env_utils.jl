@@ -235,7 +235,7 @@ function parse_commandline()
             action = :store_arg
     end
     args = parse_args(s)
-    !isnothing(args["push-result"]) && isnothing(args["push-password"]) &&
+    args["push-result"] && isnothing(args["push-password"]) &&
         throw(error("Must provide 'push-password' if you want to 'push-result'"))
     !isnothing(args["deps-list"]) && return args
     !isnothing(args["target"]) && !isnothing(args["baseline"]) &&

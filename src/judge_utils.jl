@@ -283,5 +283,6 @@ end
 
 function merge_results(input_result_files::Vector{String})::BenchmarkResults
     isempty(input_result_files) && error("When trying to merge BenchmarkResults, receive 0 results")
+    length(input_result_files) == 1 && return readresults(input_result_files[1])
     return reduce(merge_results, input_result_files)
 end
