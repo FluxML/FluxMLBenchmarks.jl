@@ -144,21 +144,21 @@ function push_result(single_deps_list::String, result_file_path::String
     end
 
     # prepare user signature for pushing results
-    username = haskey(kwargs, "git_push_username") ?
-            kwargs["git_push_username"] :
+    username = haskey(kwargs, :git_push_username) ?
+            kwargs[:git_push_username] :
             "github-actions[bot]"
-    email = haskey(kwargs, "git_push_email") ?
-            kwargs["git_push_email"] :
+    email = haskey(kwargs, :git_push_email) ?
+            kwargs[:git_push_email] :
             "github-actions[bot]@users.noreply.github.com"
     run(`git config --global user.name $username`)
     run(`git config --global user.email $email`)
     run(`git -C $(LibGit2.path(br_repo)) add $result_file_path_in_br_repo`)
     run(`git -C $(LibGit2.path(br_repo)) commit -m "Upload results of $single_deps_list"`)
-    
+
     if need_password
-        password = haskey(kwargs, "git_push_password") ?
-            kwargs["git_push_password"] :
-            throw(error("doesn't provide"))
+        password = haskey(kwargs, :git_push_password) ?
+            kwargs[:git_push_password] :
+            throw(error("doesn't provide password but now you are pushing"))
         run(`git -C $(LibGit2.path(br_repo)) push https://$username:$password@github.com/FluxML/FluxMLBenchmarks.jl`)
     else
         run(`git -C $(LibGit2.path(br_repo)) push`)
