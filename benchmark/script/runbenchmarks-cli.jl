@@ -16,14 +16,14 @@ for (i, deps) in enumerate(parsed_deps_list)
     
     using PkgBenchmark: benchmarkpkg, BenchmarkConfig
     time_run_benchmarks = @elapsed begin benchmarkpkg(
-        dirname(@__DIR__),
+        dirname(joinpath(@__DIR__, "..")),
         BenchmarkConfig(
             env = merge(
                 Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1")),
                 enabled_benchmarks
             )
         ),
-        resultfile = joinpath(@__DIR__, "result-$i.json")
+        resultfile = joinpath(@__DIR__, "..", "result-$i.json")
     ) end
     @info "($i) TIME: run benchmarks cost $time_run_benchmarks"
 

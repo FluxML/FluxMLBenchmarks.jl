@@ -36,14 +36,14 @@ catch
     using BenchmarkTools
     using PkgBenchmark
     time_run_benchmarks = @elapsed begin global group_baseline = benchmarkpkg(
-        dirname(@__DIR__),
+        dirname(joinpath(@__DIR__, "..")),
         BenchmarkConfig(
             env = merge(
                 Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1")),
                 enabled_benchmarks
             )
         ),
-        resultfile = joinpath(@__DIR__, "result-baseline.json")
+        resultfile = joinpath(@__DIR__, "..", "result-baseline.json")
     ) end
     @info "TIME: run benchmarks (baseline) cost $time_run_benchmarks"
 
@@ -63,14 +63,14 @@ time_setup_fluxml_env = @elapsed setup_fluxml_env(target_deps)
 using BenchmarkTools
 using PkgBenchmark
 time_run_benchmarks = @elapsed begin group_target = benchmarkpkg(
-    dirname(@__DIR__),
+    dirname(joinpath(@__DIR__, "..")),
     BenchmarkConfig(
         env = merge(
             Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1")),
             enabled_benchmarks
         )
     ),
-    resultfile = joinpath(@__DIR__, "result-target.json"),
+    resultfile = joinpath(@__DIR__, "..", "result-target.json"),
 ) end
 @info "TIME: run benchmarks (target) cost $time_run_benchmarks"
 
@@ -80,5 +80,5 @@ teardown()
 
 judgement = judge(group_target, group_baseline)
 report_md = markdown_report(judgement)
-write(joinpath(@__DIR__, "report.md"), report_md)
+write(joinpath(@__DIR__, "..", "report.md"), report_md)
 display_markdown_report(report_md)
