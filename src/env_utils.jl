@@ -187,6 +187,26 @@ About url passed to Pkg.add, see https://pkgdocs.julialang.org/v1/managing-packa
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        # about script
+        "--cli"
+            help = "Go to execute benchmark/script/runbenchmarks-cli.jl.
+                    You can specify --deps-list --enable --disable"
+            action = :store_true
+        "--pr"
+            help = "Go to execute benchmark/script/runbenchmarks-pr.jl.
+                    You can specify --target --baseline --enable --disable"
+            action = :store_true
+        "--merge-reports"
+            help = "Go to execute benchmark/script/mergereports-cli.jl.
+                    You can specify --target --baseline --push-result
+                    --push-username --push-useremail --push-password"
+            action = :store_true
+        "--cache-setup"
+            help = "Go to execute benchmark/script/cachesetup-cli.jl.
+                    You can specify --target --baseline"
+            action = :store_true
+
+        # about benchmarks
         "--enable"
             help = "Specified benchmark sections to execute.
                     e.g. flux,nnlib,optimisers
@@ -218,6 +238,8 @@ function parse_commandline()
         "--retune"
             help = "force re-tuning (ignore existing tuning data)"
             action = :store_true
+
+        # about git
         "--fetch-result"
             help = "skip fetching result.json of baseline from remote"
             action = :store_true
@@ -235,11 +257,21 @@ function parse_commandline()
             action = :store_arg
     end
     args = parse_args(s)
+    # script-related arguments cli / pr / merge-report / cache-setup
+    # There cannot be more than 1 true specified concurrently.
+    count([args["cli"], args["pr"], args["merge-reports"], args["cache-setup"]]) > 1 &&
+        throw(error("There cannot be more than 1 true for script-related arguments"))
+
+    # if push-result is true, push-password must be provided
     args["push-result"] && isnothing(args["push-password"]) &&
         throw(error("Must provide 'push-password' if you want to 'push-result'"))
+    
+    # if (deps-list) or (target & baseline) specified, allow returning args
     !isnothing(args["deps-list"]) && return args
     !isnothing(args["target"]) && !isnothing(args["baseline"]) &&
         return args
+    
+    # Any other cases are considered incorrect
     throw(error(
         "Must provide 'deps-list' or both 'target' and 'baseline' as command args"))
 end
