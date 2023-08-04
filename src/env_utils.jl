@@ -383,58 +383,69 @@ function parse_enabled_benchmarks(
                                     disable_cmd_arg::String
                                 )::Dict{String, Bool}
     """
-    segment :== <name> | <name>:<names>
+    segment :== <name> | <name>(<names>)
     <names> :== <name>,<names> | ϵ
+
+    Now only able to process benchmark folder with two-levels.
+    Return a tuple of two list, for top-level and second-level.
     """
     function handle_single_repo_benchmarks(segment)
-        single_repo_benchmarks = []
+        top_repo_benchmarks = []
+        second_repo_benchmarks = []
         if isempty(segment)
-            return single_repo_benchmarks
+            return top_repo_benchmarks, second_repo_benchmarks
         elseif (m = match(r"^(.*?)\((.+)\)$", segment)) !== nothing
             # e.g. top_level_bg: flux or nnlib
             # e.g. second_level_bgs: activations,gemm
             top_level_bg, second_level_bgs = m.captures[1], m.captures[2]
             if !isdir("$BENCHMARK_FILES_PATH/$top_level_bg")
                 @warn "$top_level_bg is not a dir under $BENCHMARK_FILES_PATH"
-                return single_repo_benchmarks
+                return top_repo_benchmarks, second_repo_benchmarks
             end
-            push!(single_repo_benchmarks, top_level_bg)
+            push!(top_repo_benchmarks, top_level_bg)
             for second_bg in map(string, split(second_level_bgs, ","))
-                push!(single_repo_benchmarks, "$(top_level_bg)_$(second_bg)")
+                push!(second_repo_benchmarks, "$(top_level_bg)_$(second_bg)")
             end
         else
             # e.g. top_level_bg: flux or nnlib
             top_level_bg = segment
             if !isdir("$BENCHMARK_FILES_PATH/$top_level_bg")
                 @warn "$top_level_bg is not a dir under $BENCHMARK_FILES_PATH"
-                return single_repo_benchmarks
+                return top_repo_benchmarks, second_repo_benchmarks
             end
-            push!(single_repo_benchmarks, top_level_bg)
+            push!(top_repo_benchmarks, top_level_bg)
             for fn in readdir("$BENCHMARK_FILES_PATH/$top_level_bg")
                 if (m = match(r"^(.*?).jl$", fn)) !== nothing
-                    push!(single_repo_benchmarks, "$(top_level_bg)_$(m.captures[1])")
+                    push!(second_repo_benchmarks, "$(top_level_bg)_$(m.captures[1])")
                 end
             end
         end
-        return single_repo_benchmarks
+        return top_repo_benchmarks, second_repo_benchmarks
     end
 
     cmd_enable = split(enable_cmd_arg, ";")
     cmd_disable = split(disable_cmd_arg, ";")
-    enable_benchmarks = reduce(vcat,
-        filter(!isempty ∘ !isnothing,
-            map(handle_single_repo_benchmarks, cmd_enable))
-        ; init = [])
-    disable_benchmarks = reduce(vcat,
-        filter(!isempty ∘ !isnothing,
-            map(handle_single_repo_benchmarks, cmd_disable))
-        ; init = [])
-    valid_enable_benchmarks = map(string, enable_benchmarks)
-    valid_disable_benchmarks = map(string, disable_benchmarks)
+
+    enable_top_benchmarks = []
+    enable_second_benchmarks = []
+    for enabled in cmd_enable
+        top_level_env, second_level_env = handle_single_repo_benchmarks(enabled)
+        append!(enable_top_benchmarks, top_level_env)
+        append!(enable_second_benchmarks, second_level_env)
+    end
+
+    disable_top_benchmarks = []
+    disable_second_benchmarks = []
+    for disabled in cmd_disable
+        top_level_env, second_level_env = handle_single_repo_benchmarks(disabled)
+        append!(disable_top_benchmarks, top_level_env)
+        append!(disable_second_benchmarks, second_level_env)
+    end
+
     remain_benchmark_files_name = setdiff(
-        valid_enable_benchmarks, valid_disable_benchmarks)
+        enable_second_benchmarks, disable_second_benchmarks)
     return Dict(
         "FLUXML_BENCHMARK_$(uppercase(fn))" => true
-        for fn in remain_benchmark_files_name
+        for fn in vcat(enable_top_benchmarks, remain_benchmark_files_name)
     )
 end
