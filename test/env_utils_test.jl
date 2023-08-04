@@ -62,7 +62,7 @@
 
         disable0 = "nnlib;flux"
         eb1 = parse_enabled_benchmarks(default_enable, disable0)
-        @test length(eb1) == 0
+        @test length(eb1) == 2      # flux(1), nnlib(1)
 
         enable0 = "flux;nnlib;zygote"
         eb2 = parse_enabled_benchmarks(enable0, default_disable)
@@ -74,26 +74,27 @@
         enable1 = "flux;nnlib;zygote"
         disable1 = "zygote;flux"
         eb3 = parse_enabled_benchmarks(enable1, disable1)
-        @test length(eb3) == 9      # nnlib(9)
-        @test !get(eb3, "FLUXML_BENCHMARK_FLUX", false) &&
+        @test length(eb3) == 10      # flux(1), nnlib(9)
+        @test get(eb3, "FLUXML_BENCHMARK_FLUX", false) &&
                 !get(eb3, "FLUXML_BENCHMARK_ZYGOTE", false) &&
                 get(eb3, "FLUXML_BENCHMARK_NNLIB", false)
 
         disable2 = "flux;not_existed_package;unknown_package"
         eb4 = parse_enabled_benchmarks(default_enable, disable2)
-        @test length(eb4) == 9      # nnlib(9)
-        @test !get(eb3, "FLUXML_BENCHMARK_FLUX", false)
+        @test length(eb4) == 10      # flux(1), nnlib(9)
+        @test get(eb3, "FLUXML_BENCHMARK_FLUX", false)
 
         enable2 = "flux;nnlib(activations)"
         eb5 = parse_enabled_benchmarks(enable2, "")
         @test length(eb5) == 4      # flux(2), nnlib(2)
 
         enable3 = "flux;nnlib(gemm,conv)"
-        eb6 = parse_enabled_benchmarks(enable3, "")
-        @test length(eb6) == 5      # flux(2), nnlib(3)
+        disable3 = "nnlib(conv)"
+        eb6 = parse_enabled_benchmarks(enable3, disable3)
+        @test length(eb6) == 4      # flux(2), nnlib(2)
 
         disable4 = "flux;nnlib"
         eb8 = parse_enabled_benchmarks(enable3, disable4)
-        @test length(eb8) == 0      # flux(1), nnlib(1)
+        @test length(eb8) == 2      # flux(1), nnlib(1)
     end
 end
