@@ -1,4 +1,4 @@
-const TUNE_FILE = "benchmark/tune.json"
+const TUNE_FILE = joinpath(@__DIR__, "..", "benchmark", "benchmark", "tune.json")
 const TUNE_BRANCH = "benchmark-tuning"
 
 """

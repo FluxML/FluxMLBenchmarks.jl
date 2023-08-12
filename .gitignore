@@ -5,6 +5,11 @@ Manifest.toml
 benchmark/Project.toml
 benchmark/report.md
 benchmark/*.json
+benchmark/benchmark/tune.json
 
 # Ignore for artifact mock
 fluxml-benchmark-result-*/
+
+# Ignore other *.md
+/*.md
+!README.md
