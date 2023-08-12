@@ -36,13 +36,14 @@ catch
     using BenchmarkTools
     using PkgBenchmark
     time_run_benchmarks = @elapsed begin global group_baseline = benchmarkpkg(
-        dirname(joinpath(@__DIR__, "..")),
+        dirname(joinpath(@__DIR__, "../")),
         BenchmarkConfig(
             env = merge(
                 Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1")),
                 enabled_benchmarks
             )
-        ),
+        );
+        script=joinpath(@__DIR__, "..", "benchmarks.jl"),
         resultfile = joinpath(@__DIR__, "..", "result-baseline.json")
     ) end
     @info "TIME: run benchmarks (baseline) cost $time_run_benchmarks"
@@ -63,13 +64,14 @@ time_setup_fluxml_env = @elapsed setup_fluxml_env(target_deps)
 using BenchmarkTools
 using PkgBenchmark
 time_run_benchmarks = @elapsed begin group_target = benchmarkpkg(
-    dirname(joinpath(@__DIR__, "..")),
+    dirname(joinpath(@__DIR__, "../")),
     BenchmarkConfig(
         env = merge(
             Dict("JULIA_NUM_THREADS" => get(ENV, "JULIA_NUM_THREADS", "1")),
             enabled_benchmarks
         )
-    ),
+    );
+    script=joinpath(@__DIR__, "..", "benchmarks.jl"),
     resultfile = joinpath(@__DIR__, "..", "result-target.json"),
 ) end
 @info "TIME: run benchmarks (target) cost $time_run_benchmarks"
