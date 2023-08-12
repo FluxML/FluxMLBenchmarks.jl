@@ -25,7 +25,7 @@ which are used directly or indirectly by Flux.jl.
 """
 const FLUXML_PKGS = [
     "MacroTools", "IRTools", "ZygoteRules", "Functors", "NNlib",
-    "Optimisers", "Zygote", "OneHotArrays", "NNlibCUDA", "Flux"
+    "Optimisers", "Zygote", "OneHotArrays", "Flux"
 ]
 
 """
