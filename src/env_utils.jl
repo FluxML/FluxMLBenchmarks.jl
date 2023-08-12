@@ -1,4 +1,5 @@
 using ArgParse
+using OrderedCollections
 using Pkg
 using URIParser
 
@@ -23,8 +24,8 @@ FLUXML_PKGS mean the packages in FluxML community,
 which are used directly or indirectly by Flux.jl.
 """
 const FLUXML_PKGS = [
-    "Flux", "NNlib", "Zygote", "NNlibCUDA", "Optimisers", "OneHotArrays",
-    "Functors", "ZygoteRules", "IRTools", "MacroTools"
+    "MacroTools", "IRTools", "ZygoteRules", "Functors", "NNlib",
+    "Optimisers", "Zygote", "OneHotArrays", "NNlibCUDA", "Flux"
 ]
 
 """
@@ -141,7 +142,7 @@ end
 
 generate the latest version of PackageSpecs directly.
 """
-init_dependencies() = Dict((pkg, PackageSpec(pkg)) for pkg in FLUXML_PKGS)
+init_dependencies() = OrderedDict((pkg, PackageSpec(pkg)) for pkg in FLUXML_PKGS)
 
 
 """
@@ -158,7 +159,7 @@ function init_dependencies(deps::Vector{Dependency})
         pkg_name = get_name(dep)
         !haskey(init_deps, pkg_name) && throw(error(
             "default dependencies don't have the key ($(pkg_name))"))
-        init_deps[pkg_name] = convert_to_packagespec(dep)
+        push!(init_deps, pkg_name => convert_to_packagespec(dep))
     end
     return init_deps
 end
