@@ -14,6 +14,9 @@ on:
       baseline_url:
         type: string
         description: url of baseline
+      enable_gpu:
+        type: boolean
+        description: run gpu benchmarks
 
 jobs:
   Cache:
@@ -190,3 +193,20 @@ jobs:
           name: final-report
       - run: |
           cat report.md
+
+  GPU:
+    if: ${{ github.event.inputs.enable_gpu && github.event.inputs.target_url != '' && github.event.inputs.baseline_url != '' }}
+    runs-on: ubuntu-latest
+    env:
+      PR_ID: ${{ github.event.inputs.pr_id || github.event.pull_request.number }}
+      TARGET_URL: ${{ github.event.inputs.target_url || format('{0}#{1}', github.event.pull_request.head.repo.html_url, github.event.pull_request.head.sha) }}
+      BASELINE_URL: ${{ github.event.inputs.baseline_url || format('{0}#{1}', github.event.pull_request.base.repo.html_url, github.event.pull_request.base.sha) }}
+    steps:
+      - uses: buildkite/trigger-pipeline-action@v1.6.0
+        with:
+          buildkite-token: ${{ secrets.BENCH_BK_API_KEY }} 
+          pipeline: "fudan-university/fluxmlbenchmarks-dot-jl"
+          branch: dev-buildkite
+          message:  ":github: Triggered from a GitHub Action"
+          build-env-vars: '{ "TARGET_URL": "${{ env.TARGET_URL }}", "BASELINE_URL": "${{ env.BASELINE_URL}}" }'
+          ignore-pipeline-branch-filter: true
