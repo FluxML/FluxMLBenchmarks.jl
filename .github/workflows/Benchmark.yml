@@ -194,10 +194,12 @@ jobs:
       - run: |
           cat report.md
 
+
   GPU:
     if: ${{ github.event.inputs.enable_gpu && github.event.inputs.target_url != '' && github.event.inputs.baseline_url != '' }}
     runs-on: ubuntu-latest
     env:
+      REPOSITORY: ${{ github.event.inputs.repository }}
       PR_ID: ${{ github.event.inputs.pr_id || github.event.pull_request.number }}
       TARGET_URL: ${{ github.event.inputs.target_url || format('{0}#{1}', github.event.pull_request.head.repo.html_url, github.event.pull_request.head.sha) }}
       BASELINE_URL: ${{ github.event.inputs.baseline_url || format('{0}#{1}', github.event.pull_request.base.repo.html_url, github.event.pull_request.base.sha) }}
@@ -205,8 +207,8 @@ jobs:
       - uses: buildkite/trigger-pipeline-action@v1.6.0
         with:
           buildkite-token: ${{ secrets.BENCH_BK_API_KEY }} 
-          pipeline: "fudan-university/fluxmlbenchmarks-dot-jl"
-          branch: dev-buildkite
+          pipeline: julialang/fluxmlbenchmarks-dot-jl
+          branch: main
           message:  ":github: Triggered from a GitHub Action"
-          build-env-vars: '{ "TARGET_URL": "${{ env.TARGET_URL }}", "BASELINE_URL": "${{ env.BASELINE_URL}}" }'
+          build-env-vars: '{ "TARGET_URL": "${{ env.TARGET_URL }}", "BASELINE_URL": "${{ env.BASELINE_URL}}", "REPOSITORY": "${{ env.REPOSITORY }}", "PR_ID": "${{ env.PR_ID }}" }'
           ignore-pipeline-branch-filter: true
