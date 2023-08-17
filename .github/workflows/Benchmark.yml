@@ -48,7 +48,9 @@ jobs:
         name: Install dependencies
         if: ${{ steps.restore-cache.outputs.cache-matched-key == '' }}
         run: |
-          julia --project=benchmark benchmark/runbenchmarks.jl --cache-setup --target=$TARGET_URL --baseline=$BASELINE_URL
+          julia --project=benchmark benchmark/runbenchmarks.jl --cache-setup \
+            --arch=cpu \
+            --target=$TARGET_URL --baseline=$BASELINE_URL
       -
         uses: actions/cache/save@v3
         if: ${{ steps.restore-cache.outputs.cache-matched-key == '' }}
@@ -107,6 +109,7 @@ jobs:
         name: Run benchmark
         run: |
           julia --project=benchmark benchmark/runbenchmarks.jl --pr \
+            --arch=cpu \
             --target=$TARGET_URL --baseline=$BASELINE_URL \
             --enable="${{ matrix.bm }}" \
             --fetch-result
@@ -142,6 +145,7 @@ jobs:
         name: Merge reports
         run: |
           julia --project=benchmark benchmark/runbenchmarks.jl --merge-reports \
+            --arch=cpu \
             --target=$TARGET_URL --baseline=$BASELINE_URL \
             --push-result --push-password=${{ github.token }}
       -
