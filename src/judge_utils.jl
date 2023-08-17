@@ -15,7 +15,7 @@ const TARGET_RESULT_FILE_NAME = "result-target.json"
 
 
 """
-    gen_result_filename(single_deps_list::String)::String
+    gen_result_filename(single_deps_list::String; arch = "cpu")::String
 
 is used to generate the filename of benchmark results.
 The name of results doesn't have relationship with BenchmarkResults,
@@ -25,11 +25,11 @@ we can use the information of dependencies to specify a file.
 * single_deps_list: a part of command argument, `deps-list`.
                     `target` and `baseline` also can passed in.
 """
-function gen_result_filename(single_deps_list::String)::String
+function gen_result_filename(single_deps_list::String; arch = "cpu")::String
     # keep deps in sort, in case impact of different sequence.
     sorted_deps = reduce((a, b) -> "$a,$b",
         sort(map(string, split(single_deps_list, ","))))
-    return "$(bytes2hex(sha256(sorted_deps))).json"
+    return "$(arch)-$(bytes2hex(sha256(sorted_deps))).json"
 end
 
 
@@ -61,7 +61,7 @@ end
 
 
 """
-    get_result_file_from_branch(single_deps_list::String)s
+    get_result_file_from_branch(single_deps_list::String; arch = "cpu")
 
 is used to checkout corresponding result file from benchmark-results branch.
 If possible, the result will help to skip benchmarks running.
@@ -72,8 +72,8 @@ the content of a file checked out by git. It can be "benchmark/result-baseline.j
 
 TODO: badly-designed in semantic, due to the usage of `gen_result_filename``
 """
-function get_result_file_from_branch(single_deps_list::String, checkout_filename::String)
-    result_filename = gen_result_filename(single_deps_list)
+function get_result_file_from_branch(single_deps_list::String, checkout_filename::String; arch = "cpu")
+    result_filename = gen_result_filename(single_deps_list; arch=arch)
     cmd = pipeline(`git show $RESULTS_BRANCH:$result_filename`
                     ; stdout=checkout_filename)
     try
@@ -89,13 +89,13 @@ end
 
 
 """
-    get_benchmarkresults_from_branch(single_deps_list::String)::Union{Nothing,BenchmarkResults}
+    get_benchmarkresults_from_branch(single_deps_list::String; arch = "cpu")::Union{Nothing,BenchmarkResults}
 
 is used to get BenchmarkResults from deps-list.
 """
-function get_benchmarkresults_from_branch(single_deps_list::String)::Union{Nothing,BenchmarkResults}
+function get_benchmarkresults_from_branch(single_deps_list::String; arch = "cpu")::Union{Nothing,BenchmarkResults}
     try
-        get_result_file_from_branch(single_deps_list, "tmp.json")
+        get_result_file_from_branch(single_deps_list, "tmp.json"; arch=arch)
     catch
         @warn "RESULT: get_result_file_from_branch failed to get result file with $single_deps_list."
         return
@@ -115,7 +115,7 @@ TODO: badly-designed in semantic, due to the usage of `gen_result_filename`
 TODO: need better way to process git_push_username and git_push_password
 """
 function push_result(single_deps_list::String, result_file_path::String
-                    ; need_password = true, kwargs...)
+                    ; need_password = true, arch = "cpu", kwargs...)
     # FIXME: a little bit hacked
     REPO = LibGit2.GitRepo(joinpath(@__DIR__, "..", ".git"))
     origin_remote = LibGit2.lookup_remote(REPO, "origin")
@@ -135,7 +135,7 @@ function push_result(single_deps_list::String, result_file_path::String
     end
 
     result_file_path_in_br_repo = joinpath(
-        LibGit2.path(br_repo), gen_result_filename(single_deps_list))
+        LibGit2.path(br_repo), gen_result_filename(single_deps_list; arch=arch))
     mv(result_file_path, result_file_path_in_br_repo)
     br_origin_remote = LibGit2.lookup_remote(br_repo, "origin")
     if isnothing(br_origin_remote)

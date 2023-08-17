@@ -38,6 +38,13 @@ const FLUXML_AVAILABLE_TOP_LEVEL_BENCHMARKS = [
     "flux", "nnlib"
 ]
 
+"""
+SUPPORTED_ARCHITECTURES means the supported architecture for this tool.
+"""
+const SUPPORTED_ARCHITECTURES = [
+    "cpu", "gpu"
+]
+
 
 """
     Dependency
@@ -256,6 +263,12 @@ function parse_commandline()
         "--push-password"
             help = "used to authenticate when pushing"
             action = :store_arg
+
+        # about architecture
+        "--arch"
+            help = "enable gpu benchmarks"
+            action = :store_arg
+            default = "cpu"
     end
     args = parse_args(s)
     # script-related arguments cli / pr / merge-report / cache-setup
@@ -267,6 +280,10 @@ function parse_commandline()
     args["push-result"] && isnothing(args["push-password"]) &&
         throw(error("Must provide 'push-password' if you want to 'push-result'"))
     
+    # if arch is in SUPPORTED_ARCHITECTURES, allow returning args
+    !(args["arch"] in SUPPORTED_ARCHITECTURES) &&
+        throw(error("--arch must be in SUPPORTED_ARCHITECTURES"))
+
     # if (deps-list) or (target & baseline) specified, allow returning args
     !isnothing(args["deps-list"]) && return args
     !isnothing(args["target"]) && !isnothing(args["baseline"]) &&

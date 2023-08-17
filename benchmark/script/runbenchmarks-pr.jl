@@ -24,7 +24,7 @@ try
         throw("")
     end
 
-    global group_baseline = get_benchmarkresults_from_branch(baseline_url)
+    global group_baseline = get_benchmarkresults_from_branch(baseline_url; arch=parsed_args["arch"])
     if isnothing(group_baseline)
         @warn "RESULT: cannot get result file, run benchmarks"
         throw("")
