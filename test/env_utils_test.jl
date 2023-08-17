@@ -27,7 +27,7 @@
 
     @testset "dependency operation" begin
         init_deps = init_dependencies()
-        @test length(init_deps) == 10
+        @test length(init_deps) == 9
 
         nnlib_dep = Dependency(name = "NNlib", version = "0.8.20")
         fixed_deps = init_dependencies(Vector([nnlib_dep]))
