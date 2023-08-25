@@ -74,9 +74,9 @@ steps:
     steps:
       - label: "Send comment"
         env:
-          APP_ID: ${SECRET_APP_ID}
-          INSTALLATION_ID: ${SECRET_INSTALL_ID}
-          PEM_CONTENT_B64: ${SECRET_PRIVATE_KEY}
+          APP_ID: ${APP_ID}
+          INSTALLATION_ID: ${INSTALL_ID}
+          PEM_CONTENT_B64: ${PRIVATE_KEY}
         # REPOSITORY and PR_ID are passed via "env"
         commands: |
           echo "Send comment to ${REPOSITORY}#${PR_ID}"
