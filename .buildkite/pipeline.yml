@@ -12,6 +12,7 @@ steps:
         command: |
           git fetch origin && git fetch origin benchmark-tuning:benchmark-tuning
           julia --project=benchmark benchmark/runbenchmarks.jl --pr \
+            --arch=gpu \
             --target=$TARGET_URL --baseline=$BASELINE_URL \
             --enable="{{matrix.bm}}" \
             --fetch-result
@@ -54,6 +55,7 @@ steps:
           find . -name "fluxml-benchmark-result-*.tar" -print0 | xargs -0 --max-args=1 tar xf
 
           julia --project=benchmark benchmark/runbenchmarks.jl --merge-reports \
+            --arch=gpu \
             --target=$TARGET_URL --baseline=$BASELINE_URL
           
           cat benchmark/report.md && cp benchmark/report.md comment.txt
