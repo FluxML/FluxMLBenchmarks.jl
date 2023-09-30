@@ -71,9 +71,8 @@ jobs:
     strategy:
       matrix:
         bm: [
-          # for test
-          #"nnlib(attention,activations,gemm)", "nnlib(conv)",
-          #"nnlib(pooling,softmax)", "nnlib(dropout,upsample)",
+          "nnlib(attention,activations,gemm)", "nnlib(conv)",
+          "nnlib(pooling,softmax)", "nnlib(dropout,upsample)",
           "flux"
         ]
     steps:
