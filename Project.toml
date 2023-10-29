@@ -21,6 +21,7 @@ BenchmarkCI = "0.1"
 BenchmarkTools = "1"
 OrderedCollections = "1"
 PkgBenchmark = "0.2"
+SHA = "0.7"
 URIParser = "0.4"
 julia = "1"
 
